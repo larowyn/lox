@@ -35,10 +35,13 @@ void			freeStack(Stack *stack) {
 	free(stack);
 }
 
+// @todo @bug: Handle size * granularity > UINT32_MAX
 INTERNAL Stack	*resize(Stack *stack) {
 	// @improvements: Make the growing of the stack looks like a bell curve
 	uint32		size = stack->size < UINT32_MAX / 2 ? stack->size * 2 : UINT32_MAX - 1;
 	void		*previousContent = stack->content;
+
+	ASSERT((uint64)(UINT32_MAX) > (uint64)(size * stack->granularity)) // @todo @bug
 
 	stack->content = (byte *)calloc(size, stack->granularity);
 
@@ -49,7 +52,6 @@ INTERNAL Stack	*resize(Stack *stack) {
 		return NULL;
 	}
 
-	ASSERT((uint64)(UINT32_MAX) > (uint64)(stack->size * stack->granularity))
 	memCopy(stack->content, previousContent, (stack->size * stack->granularity) / sizeof(byte));
 
 	free(previousContent);

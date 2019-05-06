@@ -7,6 +7,7 @@
 
 #include "ptb/ptb_stack.h"
 #include "ptb/ptb_substring.h"
+#include "state.h"
 #include "parser.h"
 
 enum 				LoxValueType {
@@ -47,6 +48,6 @@ inline void			printLoxValue(LoxValue *value) {
 	}
 }
 
-void 				eval(Stack *statements);
+void 				eval(State *state, Stack *statements);
 
 #endif //LOX_INTERPRETER_H

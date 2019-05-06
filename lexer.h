@@ -10,6 +10,7 @@
 #include "ptb/ptb_types.h"
 #include "ptb/ptb_stack.h"
 #include "ptb/ptb_substring.h"
+#include "state.h"
 
 enum 			TokenType {
 	INVALID_TOKEN,
@@ -152,6 +153,6 @@ inline void		printToken(Token *token) {
 	}
 }
 
-void 			lex(char *source, Stack *tokens);
+void 			lex(State *state, char *source, Stack *tokens);
 
 #endif //LOX_LEXER_H

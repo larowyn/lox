@@ -3,6 +3,8 @@
 //
 
 #include "ptb/ptb_stack.h"
+#include "state.h"
+#include "error.h"
 #include "lexer.h"
 #include "parser.h"
 #include "interpreter.h"
@@ -333,7 +335,7 @@ void			execStatement(Stmt *statement) {
 	}
 }
 
-void 			eval(Stack *statements) {
+void 			eval(State *state, Stack *statements) {
 	Stmt		*statement = (Stmt *)getStart(statements);
 
 	while (statement - (Stmt *)statements->content <= statements->length) {

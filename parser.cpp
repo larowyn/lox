@@ -3,6 +3,8 @@
 //
 
 #include "ptb/ptb_stack.h"
+#include "state.h"
+#include "error.h"
 #include "parser.h"
 
 GLOBAL Token	*tokens;
@@ -185,7 +187,7 @@ Stmt			*statement(Stack *statements, Stack *expressions) {
 	return statement;
 }
 
-void 			parse(Stack *tokensStack, Stack *statements, Stack *expressions) {
+void 			parse(State *state, Stack *tokensStack, Stack *statements, Stack *expressions) {
 	tokens = (Token *)getStart(tokensStack);
 
 	while (!matchType(LOX_EOF)) {

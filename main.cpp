@@ -4,11 +4,18 @@
 #include "ptb/ptb_types.h"
 #include "ptb/ptb_io.h"
 #include "ptb/ptb_stack.h"
+#include "error.h"
+#include "state.h"
 #include "lexer.h"
 #include "parser.h"
 #include "interpreter.h"
 
-void	run(char *source) {
+// @todo @performance: Group all stack initialization into one alloc
+void		run(char *source) {
+	State	state;
+
+	state.errors = NULL;
+
 	printf("----- Source -----\n");
 	printf("%s\n", source);
 
@@ -16,21 +23,21 @@ void	run(char *source) {
 	printf("----- Lex -----\n");
 	Stack	*tokens = initStack(sizeof(Token));
 
-	lex(source, tokens);
+	lex(&state, source, tokens);
 
 
 	printf("----- Parse -----\n");
 	Stack	*statements = initStack(sizeof(Stmt));
 	Stack	*expressions = initStack(sizeof(Expr));
 
-	parse(tokens, statements, expressions);
+	parse(&state, tokens, statements, expressions);
 
 
 	printf("----- Eval -----\n");
-	eval(statements);
+	eval(&state, statements);
 }
 
-int32	main(int argc, char *argv[]) {
+int32		main(int argc, char *argv[]) {
 	if (argc == 1) {
 		// @todo: Implement REPL
 	} else if (argc == 2) {

@@ -5,6 +5,7 @@
 #ifndef LOX_PARSER_H
 #define LOX_PARSER_H
 
+#include "state.h"
 #include "lexer.h"
 
 enum 		ExprType {
@@ -117,6 +118,6 @@ inline void		printExpr(Expr *expr) {
 	printf("%s\n", exprToString(expr, buffers, 0));
 }
 
-void			parse(Stack *tokensStack, Stack *statements, Stack *expressions);
+void			parse(State *state, Stack *tokensStack, Stack *statements, Stack *expressions);
 
 #endif //LOX_PARSER_H

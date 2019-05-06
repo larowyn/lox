@@ -5,19 +5,15 @@
 #include <cstdio>
 
 #include "lexer.h"
+#include "state.h"
+#include "error.h"
 #include "ptb/ptb_standard.h"
 #include "ptb/ptb_stack.h"
 
 #define DEBUG_ENABLED 0
 #define DEBUG(expression) if (DEBUG_ENABLED) {expression}
 
-void	reportError(int32 line, char *message) {
-	printf("\033[31m"); // red
-	printf("[line: %d] Error: %s", line, message);
-	printf("\033[0m\n"); // reset + \n
-}
-
-void 	lex(char *source, Stack *tokens) {
+void 	lex(State *state, char *source, Stack *tokens) {
 	Token	*token = (Token *)getNext(tokens);
 	int32 	current = 0;
 	int32	length = 0;
@@ -108,6 +104,7 @@ void 	lex(char *source, Stack *tokens) {
 				while (source[current + length] != '"') {
 					if (source[current + length] == '\0') {
 						reportError(line, "Unterminated string"); // @todo: error handling
+						pushError(state, SYNTAX_ERROR, UNTERMINATED_STRING);
 
 						break;
 					}
