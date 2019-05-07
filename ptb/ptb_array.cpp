@@ -5,12 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ptb_stack.h"
+#include "ptb_array.h"
 #include "ptb_types.h"
 #include "ptb_standard.h"
 
-Stack			*initStack(uint32 granularity) {
-	Stack *stack = (Stack *) calloc(1, sizeof(Stack));
+Array			*initArray(uint32 granularity) {
+	Array *stack = (Array *) calloc(1, sizeof(Array));
 
 	if(!stack) {
 		return NULL;
@@ -30,13 +30,13 @@ Stack			*initStack(uint32 granularity) {
 	return stack;
 }
 
-void			freeStack(Stack *stack) {
+void			freeArray(Array *stack) {
 	free(stack->content);
 	free(stack);
 }
 
 // @todo @bug: Handle size * granularity > UINT32_MAX
-INTERNAL Stack	*resize(Stack *stack) {
+INTERNAL Array	*resize(Array *stack) {
 	// @improvements: Make the growing of the stack looks like a bell curve
 	uint32		size = stack->size < UINT32_MAX / 2 ? stack->size * 2 : UINT32_MAX - 1;
 	void		*previousContent = stack->content;
@@ -61,11 +61,11 @@ INTERNAL Stack	*resize(Stack *stack) {
 	return stack;
 }
 
-void			*getStart(Stack *stack) {
+void			*getStart(Array *stack) {
 	return stack->content;
 }
 
-void			*getNext(Stack *stack) {
+void			*getNext(Array *stack) {
 	if (stack->length == stack->size && !resize(stack)) {
 		return NULL;
 	}

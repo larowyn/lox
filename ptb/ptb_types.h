@@ -9,7 +9,15 @@
 #include <cstdio>
 
 // @todo: Find a better place for it
-#define ASSERT(Expression) if(!(Expression)) {*(int *)0 = 0;}
+#ifndef __has_builtin         // Optional of course.
+# define __has_builtin(x) 0  // Compatibility with non-clang compilers.
+#endif
+
+#if __has_builtin(__builtin_trap)
+# define ASSERT(Expression) if(!(Expression)) {__builtin_trap();}
+#else
+# define ASSERT(Expression) if(!(Expression)) {*(int *)0 = 0;}
+#endif
 
 #define INTERNAL static
 #define LOCAL_PERSIST static

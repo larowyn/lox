@@ -5,7 +5,7 @@
 #ifndef LOX_INTERPRETER_H
 #define LOX_INTERPRETER_H
 
-#include "ptb/ptb_stack.h"
+#include "ptb/ptb_array.h"
 #include "ptb/ptb_substring.h"
 #include "state.h"
 #include "parser.h"
@@ -48,6 +48,6 @@ inline void			printLoxValue(LoxValue *value) {
 	}
 }
 
-void 				eval(State *state, Stack *statements);
+void 				eval(State *state, Array *statements);
 
 #endif //LOX_INTERPRETER_H

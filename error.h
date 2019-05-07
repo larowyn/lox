@@ -6,31 +6,50 @@
 #define LOX_ERROR_H
 
 #include "state.h"
+#include "lexer.h"
+#include "parser.h"
 
-enum 			ErrorType {
+enum 				ErrorType {
 	INVALID_ERROR_TYPE,
 
-	SYNTAX_ERROR, PARSING_ERROR, RUNTIME_ERROR
+	TOKEN_ERROR, EXPR_ERROR, STMT_ERROR
 };
 
-enum 			ErrorCode {
+enum 				ErrorCode {
 	INVALID_ERROR_CODE,
 
-	UNTERMINATED_STRING
+	// Lexer errors
+	UNTERMINATED_STRING,
+	NUMBER_TOO_BIG,
+	NUMBER_TOO_PRECISE,
+	ERROR_INVALID_TOKEN
 };
 
-const char		errorMessage[10][100] = {
-	"INVALID ERROR CODE",
+const char			errorMessage[10][100] = {
+	"Unknown error",
 
-	"Unterminated string"
+	// Lexer errors
+	"Unterminated string",
+	"Number literal too big",
+	"Number literal too precise",
+	"Unexpected character"
 };
 
-struct			Error {
-	ErrorType	type;
-	ErrorCode	code;
+struct				Error {
+	ErrorType		type;
+	ErrorCode		code;
+
+	union {
+		Token		*token;
+		Expr		*expr;
+		Stmt		*stmt;
+	};
 };
 
-void 			pushError(State *state, ErrorType type, ErrorCode code);
+void 				pushError(State *state, ErrorCode code, Token *token);
+void 				pushError(State *state, ErrorCode code, Expr *expr);
+void 				pushError(State *state, ErrorCode code, Stmt *stmt);
+void				reportError(Error *error);
 
 
 #endif //LOX_ERROR_H

@@ -2,7 +2,7 @@
 // Created by Paul Motte on 2019-05-05.
 //
 
-#include "ptb/ptb_stack.h"
+#include "ptb/ptb_array.h"
 #include "state.h"
 #include "error.h"
 #include "lexer.h"
@@ -335,7 +335,7 @@ void			execStatement(Stmt *statement) {
 	}
 }
 
-void 			eval(State *state, Stack *statements) {
+void 			eval(State *state, Array *statements) {
 	Stmt		*statement = (Stmt *)getStart(statements);
 
 	while (statement - (Stmt *)statements->content <= statements->length) {

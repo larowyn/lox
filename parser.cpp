@@ -2,7 +2,7 @@
 // Created by Paul Motte on 2019-05-04.
 //
 
-#include "ptb/ptb_stack.h"
+#include "ptb/ptb_array.h"
 #include "state.h"
 #include "error.h"
 #include "parser.h"
@@ -20,9 +20,9 @@ void			reportError2(int32 line, char *message) {
 	printf("\033[0m\n"); // reset + \n
 }
 
-Expr			*expression(Stack *expressions);
+Expr			*expression(Array *expressions);
 
-Expr			*primary(Stack *expressions) {
+Expr			*primary(Array *expressions) {
 	Expr		*expr = (Expr *)getNext(expressions);
 
 	if (matchType(LEFT_PAREN)) {
@@ -45,7 +45,7 @@ Expr			*primary(Stack *expressions) {
 	return expr;
 }
 
-Expr			*unary(Stack *expressions) {
+Expr			*unary(Array *expressions) {
 	if (matchType(BANG) || matchType(MINUS)) {
 		Expr	*unaryExpr = (Expr *)getNext(expressions);
 
@@ -62,7 +62,7 @@ Expr			*unary(Stack *expressions) {
 }
 
 // @todo: refacto all binaries expression handler into one that take the array of token to put in the while
-Expr			*multiplication(Stack *expressions) {
+Expr			*multiplication(Array *expressions) {
 	Expr		*expr = unary(expressions);
 
 	while (matchType(STAR) || matchType(SLASH)) {
@@ -81,7 +81,7 @@ Expr			*multiplication(Stack *expressions) {
 	return expr;
 }
 
-Expr			*addition(Stack *expressions) {
+Expr			*addition(Array *expressions) {
 	Expr		*expr = multiplication(expressions);
 
 	while (matchType(PLUS) || matchType(MINUS)) {
@@ -100,7 +100,7 @@ Expr			*addition(Stack *expressions) {
 	return expr;
 }
 
-Expr			*comparison(Stack *expressions) {
+Expr			*comparison(Array *expressions) {
 	Expr		*expr = addition(expressions);
 
 	while (
@@ -124,7 +124,7 @@ Expr			*comparison(Stack *expressions) {
 	return expr;
 }
 
-Expr			*equality(Stack *expressions) {
+Expr			*equality(Array *expressions) {
 	Expr		*expr = comparison(expressions);
 
 	while (matchType(EQUAL_EQUAL) || matchType(BANG_EQUAL)) {
@@ -143,11 +143,11 @@ Expr			*equality(Stack *expressions) {
 	return expr;
 }
 
-Expr			*expression(Stack *expressions) {
+Expr			*expression(Array *expressions) {
 	return equality(expressions);
 }
 
-Stmt			*expressionStatement(Stack *statements, Stack *expressions) {
+Stmt			*expressionStatement(Array *statements, Array *expressions) {
 	Stmt		*statement = (Stmt *)getNext(statements);
 
 	statement->type = STMT;
@@ -156,7 +156,7 @@ Stmt			*expressionStatement(Stack *statements, Stack *expressions) {
 	return statement;
 }
 
-Stmt			*printStatement(Stack *statements, Stack *expressions) {
+Stmt			*printStatement(Array *statements, Array *expressions) {
 	Stmt		*statement = (Stmt *)getNext(statements);
 
 	statement->type = PRINT_STMT;
@@ -167,7 +167,7 @@ Stmt			*printStatement(Stack *statements, Stack *expressions) {
 	return statement;
 }
 
-Stmt			*statement(Stack *statements, Stack *expressions) {
+Stmt			*statement(Array *statements, Array *expressions) {
 	Stmt		*statement;
 
 	if (matchType(PRINT)) {
@@ -187,7 +187,7 @@ Stmt			*statement(Stack *statements, Stack *expressions) {
 	return statement;
 }
 
-void 			parse(State *state, Stack *tokensStack, Stack *statements, Stack *expressions) {
+void 			parse(State *state, Array *tokensStack, Array *statements, Array *expressions) {
 	tokens = (Token *)getStart(tokensStack);
 
 	while (!matchType(LOX_EOF)) {

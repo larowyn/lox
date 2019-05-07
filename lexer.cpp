@@ -8,12 +8,12 @@
 #include "state.h"
 #include "error.h"
 #include "ptb/ptb_standard.h"
-#include "ptb/ptb_stack.h"
+#include "ptb/ptb_array.h"
 
 #define DEBUG_ENABLED 0
 #define DEBUG(expression) if (DEBUG_ENABLED) {expression}
 
-void 	lex(State *state, char *source, Stack *tokens) {
+void 	lex(State *state, char *source, Array *tokens) {
 	Token	*token = (Token *)getNext(tokens);
 	int32 	current = 0;
 	int32	length = 0;
@@ -103,9 +103,8 @@ void 	lex(State *state, char *source, Stack *tokens) {
 
 				while (source[current + length] != '"') {
 					if (source[current + length] == '\0') {
-						reportError(line, "Unterminated string"); // @todo: error handling
-						pushError(state, SYNTAX_ERROR, UNTERMINATED_STRING);
-
+						token->type = INVALID_TOKEN;
+						pushError(state, UNTERMINATED_STRING, token);
 						break;
 					}
 
@@ -147,7 +146,9 @@ void 	lex(State *state, char *source, Stack *tokens) {
 					integerPart += source[current + length] - 48;
 
 					if (integerPart > INT32_MAX) { // @todo: properly handle numeric literal too big, this test is garbage
-						reportError(line, "Number literal too big"); // @todo: error handling
+						token->type = INVALID_TOKEN;
+						pushError(state, NUMBER_TOO_BIG, token);
+						//@todo: Consume the rest of the number without storing the value we can't store
 					}
 
 					length++;
@@ -162,7 +163,9 @@ void 	lex(State *state, char *source, Stack *tokens) {
 						floatingPart += source[current + length] - 48;
 
 						if (floatingPart > INT32_MAX) { // @todo: properly handle numeric literal too precise, this test is garbage
-							reportError(line, "Number literal too precise"); // @todo: error handling
+							token->type = INVALID_TOKEN;
+							pushError(state, NUMBER_TOO_PRECISE, token);
+							//@todo: Consume the rest of the number without storing the value we can't store
 						}
 
 						length++;
@@ -195,14 +198,13 @@ void 	lex(State *state, char *source, Stack *tokens) {
 			case '\r':
 			case '\t':
 				length = 1;
-				token->type = INVALID_TOKEN;
+				token->type = BLANK_TOKEN;
 				break;
 
 			case '\n':
-				length = 1;
-				token->type = INVALID_TOKEN;
-
 				line++;
+				length = 1;
+				token->type = BLANK_TOKEN;
 				break;
 
 			default:
@@ -261,14 +263,13 @@ void 	lex(State *state, char *source, Stack *tokens) {
 				} else { // Unexpected character
 					length = 1;
 					token->type = INVALID_TOKEN;
-
-					reportError(line, "Unexpected character"); // @todo: error handling
+					pushError(state, ERROR_INVALID_TOKEN, token);
 				}
 
 				break;
 		}
 
-		if (token->type != INVALID_TOKEN) {
+		if (token->type != BLANK_TOKEN) {
 			token->length = length;
 			token->lexeme.start = &source[current];
 			token->lexeme.length = length;

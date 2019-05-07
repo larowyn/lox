@@ -3,7 +3,7 @@
 
 #include "ptb/ptb_types.h"
 #include "ptb/ptb_io.h"
-#include "ptb/ptb_stack.h"
+#include "ptb/ptb_array.h"
 #include "error.h"
 #include "state.h"
 #include "lexer.h"
@@ -21,14 +21,14 @@ void		run(char *source) {
 
 
 	printf("----- Lex -----\n");
-	Stack	*tokens = initStack(sizeof(Token));
+	Array	*tokens = initArray(sizeof(Token));
 
 	lex(&state, source, tokens);
 
 
 	printf("----- Parse -----\n");
-	Stack	*statements = initStack(sizeof(Stmt));
-	Stack	*expressions = initStack(sizeof(Expr));
+	Array	*statements = initArray(sizeof(Stmt));
+	Array	*expressions = initArray(sizeof(Expr));
 
 	parse(&state, tokens, statements, expressions);
 

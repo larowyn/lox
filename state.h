@@ -5,10 +5,10 @@
 #ifndef LOX_STATE_H
 #define LOX_STATE_H
 
-#include "ptb/ptb_stack.h"
+#include "ptb/ptb_array.h"
 
 struct		State {
-	Stack	*errors;
+	Array	*errors;
 };
 
 #endif //LOX_STATE_H

@@ -118,6 +118,6 @@ inline void		printExpr(Expr *expr) {
 	printf("%s\n", exprToString(expr, buffers, 0));
 }
 
-void			parse(State *state, Stack *tokensStack, Stack *statements, Stack *expressions);
+void			parse(State *state, Array *tokensStack, Array *statements, Array *expressions);
 
 #endif //LOX_PARSER_H

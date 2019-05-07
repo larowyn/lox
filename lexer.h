@@ -8,12 +8,14 @@
 #include <cstdio>
 
 #include "ptb/ptb_types.h"
-#include "ptb/ptb_stack.h"
+#include "ptb/ptb_array.h"
 #include "ptb/ptb_substring.h"
 #include "state.h"
 
 enum 			TokenType {
 	INVALID_TOKEN,
+
+	BLANK_TOKEN,
 
 	// Single-character tokens.
 	LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
@@ -153,6 +155,6 @@ inline void		printToken(Token *token) {
 	}
 }
 
-void 			lex(State *state, char *source, Stack *tokens);
+void 			lex(State *state, char *source, Array *tokens);
 
 #endif //LOX_LEXER_H
