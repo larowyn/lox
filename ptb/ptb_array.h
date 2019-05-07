@@ -15,12 +15,11 @@ struct		Array {
 	uint32	size;
 	uint32	length;
 	uint32	granularity;
-	byte	firstAccessed; // Handle the first call to getNext
 };
 
 Array		*initArray(uint32 granularity);
-void		freeArray(Array *stack);
-void		*getStart(Array *stack);
-void		*getNext(Array *stack);
+void		freeArray(Array *array);
+void		*getStart(Array *array);
+void		*getNext(Array *array);
 
 #endif // PTB_ARRAY_H

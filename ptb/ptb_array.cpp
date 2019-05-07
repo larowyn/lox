@@ -10,72 +10,65 @@
 #include "ptb_standard.h"
 
 Array			*initArray(uint32 granularity) {
-	Array *stack = (Array *) calloc(1, sizeof(Array));
+	Array *array = (Array *) calloc(1, sizeof(Array));
 
-	if(!stack) {
+	if(!array) {
 		return NULL;
 	}
 
-	stack->length = 0;
-	stack->size = INITIAL_SIZE;
-	stack->granularity = granularity;
-	stack->content = (byte *)calloc(INITIAL_SIZE, granularity);
-	stack->firstAccessed = 0;
+	array->length = 0;
+	array->size = INITIAL_SIZE;
+	array->granularity = granularity;
+	array->content = (byte *)calloc(INITIAL_SIZE, granularity);
 
-	if(!stack->content) {
-		free(stack);
+	if(!array->content) {
+		free(array);
 		return NULL;
 	}
 
-	return stack;
+	return array;
 }
 
-void			freeArray(Array *stack) {
-	free(stack->content);
-	free(stack);
+void			freeArray(Array *array) {
+	free(array->content);
+	free(array);
 }
 
 // @todo @bug: Handle size * granularity > UINT32_MAX
-INTERNAL Array	*resize(Array *stack) {
-	// @improvements: Make the growing of the stack looks like a bell curve
-	uint32		size = stack->size < UINT32_MAX / 2 ? stack->size * 2 : UINT32_MAX - 1;
-	void		*previousContent = stack->content;
+INTERNAL Array	*resize(Array *array) {
+	// @improvements: Make the growing of the array looks like a bell curve
+	uint32		size = array->size < UINT32_MAX / 2 ? array->size * 2 : UINT32_MAX - 1;
+	void		*previousContent = array->content;
 
-	ASSERT((uint64)(UINT32_MAX) > (uint64)(size * stack->granularity)) // @todo @bug
+	ASSERT((uint64)(UINT32_MAX) > (uint64)(size * array->granularity)) // @todo @bug
 
-	stack->content = (byte *)calloc(size, stack->granularity);
+	array->content = (byte *)calloc(size, array->granularity);
 
-	if(!stack->content) {
+	if(!array->content) {
 		free(previousContent);
-		free(stack);
+		free(array);
 
 		return NULL;
 	}
 
-	memCopy(stack->content, previousContent, (stack->size * stack->granularity) / sizeof(byte));
+	memCopy(array->content, previousContent, (array->size * array->granularity) / sizeof(byte));
 
 	free(previousContent);
 
-	stack->size = size;
+	array->size = size;
 
-	return stack;
+	return array;
 }
 
-void			*getStart(Array *stack) {
-	return stack->content;
+void			*getStart(Array *array) {
+	return array->content;
 }
 
-void			*getNext(Array *stack) {
-	if (stack->length == stack->size && !resize(stack)) {
+void			*getNext(Array *array) {
+	if (array->length == array->size && !resize(array)) {
 		return NULL;
 	}
 
-	if (!stack->firstAccessed) { // Handle the first call to getNext
-		stack->firstAccessed = 1;
-		return getStart(stack);
-	}
-
-	stack->length += 1;
-
-	return stack->content + (stack->length * stack->granularity);
+	array->length++;
+	return array->content + ((array->length - 1) * array->granularity);
 }

@@ -7,11 +7,24 @@
 #include "error.h"
 #include "parser.h"
 
+GLOBAL State	*state;
 GLOBAL Token	*tokens;
 GLOBAL int32	current = 0;
 
-INTERNAL inline bool matchType(TokenType type) {
+INTERNAL bool	matchType(TokenType type) {
 	return tokens[current].type == type;
+}
+
+INTERNAL Token	*currentToken() {
+	return &tokens[current];
+}
+
+INTERNAL void	consume() {
+	current++;
+
+	while (matchType(INVALID_TOKEN)) {
+		current++;
+	}
 }
 
 void			reportError2(int32 line, char *message) {
@@ -28,18 +41,22 @@ Expr			*primary(Array *expressions) {
 	if (matchType(LEFT_PAREN)) {
 		expr->type = GROUPING;
 
-		current++;
+		consume();
 		expr->inner = expression(expressions);
 
 		if (!matchType(RIGHT_PAREN)) {
-			reportError2(tokens[current].line, "Expect ')' After Expression"); // @todo: error handling
+			pushError(state, UNTERMINATED_GROUP, expr);
 		} else {
-			current++;
+			consume();
 		}
+	} else if (matchType(IDENTIFIER)) {
+		expr->type = VARIABLE;
+		expr->value = currentToken();
+		consume();
 	} else {
 		expr->type = LITERAL;
-		expr->value = &tokens[current];
-		current++;
+		expr->value = currentToken();
+		consume();
 	}
 
 	return expr;
@@ -50,9 +67,9 @@ Expr			*unary(Array *expressions) {
 		Expr	*unaryExpr = (Expr *)getNext(expressions);
 
 		unaryExpr->type = UNARY;
-		unaryExpr->op = &tokens[current];
+		unaryExpr->op = currentToken();
 
-		current++;
+		consume();
 		unaryExpr->right = unary(expressions);
 
 		return unaryExpr;
@@ -71,8 +88,8 @@ Expr			*multiplication(Array *expressions) {
 		binaryExpr->type = BINARY;
 		binaryExpr->left = expr;
 
-		binaryExpr->op = &tokens[current];
-		current++;
+		binaryExpr->op = currentToken();
+		consume();
 
 		binaryExpr->right = unary(expressions);
 		expr = binaryExpr;
@@ -90,8 +107,8 @@ Expr			*addition(Array *expressions) {
 		binaryExpr->type = BINARY;
 		binaryExpr->left = expr;
 
-		binaryExpr->op = &tokens[current];
-		current++;
+		binaryExpr->op = currentToken();
+		consume();
 
 		binaryExpr->right = multiplication(expressions);
 		expr = binaryExpr;
@@ -114,8 +131,8 @@ Expr			*comparison(Array *expressions) {
 		binaryExpr->type = BINARY;
 		binaryExpr->left = expr;
 
-		binaryExpr->op = &tokens[current];
-		current++;
+		binaryExpr->op = currentToken();
+		consume();
 
 		binaryExpr->right = addition(expressions);
 		expr = binaryExpr;
@@ -133,8 +150,8 @@ Expr			*equality(Array *expressions) {
 		binaryExpr->type = BINARY;
 		binaryExpr->left = expr;
 
-		binaryExpr->op = &tokens[current];
-		current++;
+		binaryExpr->op = currentToken();
+		consume();
 
 		binaryExpr->right = comparison(expressions);
 		expr = binaryExpr;
@@ -161,36 +178,79 @@ Stmt			*printStatement(Array *statements, Array *expressions) {
 
 	statement->type = PRINT_STMT;
 
-	current++;
+	consume();
 	statement->inner = expression(expressions);
 
 	return statement;
 }
 
 Stmt			*statement(Array *statements, Array *expressions) {
-	Stmt		*statement;
+	Stmt		*stmt;
 
 	if (matchType(PRINT)) {
-		statement = printStatement(statements, expressions);
+		stmt = printStatement(statements, expressions);
 	} else {
-		statement = expressionStatement(statements, expressions);
+		stmt = expressionStatement(statements, expressions);
 	}
 
-	if (!matchType(SEMICOLON)) {
-		// @todo: error handling
-		reportError2(tokens[current].line, "Expect ';' At The End Of A Statement");
-		statement->type = INVALID_STMT;
+	return stmt;
+}
+
+Stmt			*declarationStatement(Array *statements, Array *expressions) {
+	Stmt		*stmt = (Stmt *)getNext(statements);
+
+	stmt->type = DECL_STMT;
+
+	consume(); // VAR
+
+	if (!matchType(IDENTIFIER)) {
+		stmt->type = INVALID_STMT;
+		pushError(state, EXPECT_VARIABLE_NAME, stmt);
 	} else {
+		stmt->initializer = NULL;
+		stmt->identifier = currentToken();
+		consume(); // IDENTIFIER
+
+		if (matchType(EQUAL)) {
+			consume(); // EQUAL
+			stmt->initializer = expression(expressions);
+		}
+	}
+
+	return stmt;
+}
+
+Stmt			*declaration(Array *statements, Array *expressions) {
+	Stmt		*stmt;
+
+	if (matchType(VAR)) {
+		stmt = declarationStatement(statements, expressions);
+	} else {
+		stmt = statement(statements, expressions);
+	}
+
+	// @todo: error synchronization should happen here if an error happen
+
+	if (!matchType(SEMICOLON)) {
+		stmt->type = INVALID_STMT;
+		pushError(state, UNTERMINATED_STATEMENT, stmt);
+	} else {
+		consume();
+	}
+
+	return stmt;
+}
+
+void 			parse(State *interpreterState, Array *tokensArray, Array *statements, Array *expressions) {
+	state = interpreterState;
+	tokens = (Token *)getStart(tokensArray);
+
+	// Skip potential starting invalid tokens
+	while (matchType(INVALID_TOKEN)) {
 		current++;
 	}
 
-	return statement;
-}
-
-void 			parse(State *state, Array *tokensStack, Array *statements, Array *expressions) {
-	tokens = (Token *)getStart(tokensStack);
-
 	while (!matchType(LOX_EOF)) {
-		statement(statements, expressions);
+		declaration(statements, expressions);
 	}
 }

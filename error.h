@@ -22,17 +22,29 @@ enum 				ErrorCode {
 	UNTERMINATED_STRING,
 	NUMBER_TOO_BIG,
 	NUMBER_TOO_PRECISE,
-	ERROR_INVALID_TOKEN
+	ERROR_INVALID_TOKEN,
+
+	// Parser errors
+	UNTERMINATED_GROUP,
+	UNTERMINATED_STATEMENT,
+	EXPECT_VARIABLE_NAME,
+
+	ERROR_CODE_LENGTH
 };
 
-const char			errorMessage[10][100] = {
+const char			errorMessage[ERROR_CODE_LENGTH][100] = {
 	"Unknown error",
 
 	// Lexer errors
 	"Unterminated string",
 	"Number literal too big",
 	"Number literal too precise",
-	"Unexpected character"
+	"Unexpected character",
+
+	// Parser errors
+	"Expect ')' after expression",
+	"Expect ';' at the end of a statement",
+	"Expect variable name"
 };
 
 struct				Error {
@@ -49,7 +61,7 @@ struct				Error {
 void 				pushError(State *state, ErrorCode code, Token *token);
 void 				pushError(State *state, ErrorCode code, Expr *expr);
 void 				pushError(State *state, ErrorCode code, Stmt *stmt);
-void				reportError(Error *error);
+void				reportError(char *source, Error *error);
 
 
 #endif //LOX_ERROR_H

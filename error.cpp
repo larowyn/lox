@@ -19,6 +19,8 @@ INTERNAL Error 	*_pushError(State *state, ErrorType type, ErrorCode code) {
 
 	error->type = type;
 	error->code = code;
+
+	return error;
 }
 
 void 			pushError(State *state, ErrorCode code, Token *token) {
@@ -39,39 +41,65 @@ void 			pushError(State *state, ErrorCode code, Stmt *stmt) {
 	error->stmt = stmt;
 }
 
-INTERNAL void	_printExprLine(Expr *expr) {
+INTERNAL Token	*getTokenInExpr(Expr *expr) {
 	switch (expr->type) {
 		case BINARY:
-			printf("[line: %d]: ", expr->left->value->line);
-			break;
+			return expr->left->value;
 		case GROUPING:
-			printf("[line: %d]: ", expr->inner->value->line);
-			break;
+			return expr->inner->value;
 		case UNARY:
-			printf("[line: %d]: ", expr->op->line);
-			break;
+			return expr->op;
 		case LITERAL:
-			printf("[line: %d]: ", expr->value->line);
-			break;
-		//@todo: handle default
+			return expr->value;
+		default:
+			//@todo: handle default
+			ASSERT(false)
 	}
 }
 
-void		reportError(Error *error) {
-	printf("\033[31m"); // red
+INTERNAL Token	*getErroneousToken(Error *error) {
 	switch (error->type) {
 		case TOKEN_ERROR:
-			printf("[line: %d] ", error->token->line);
-			break;
+			return error->token;
 		case EXPR_ERROR:
-			_printExprLine(error->expr);
-			break;
+			return getTokenInExpr(error->expr);
 		case STMT_ERROR:
-			_printExprLine(error->stmt->inner);
-			break;
-		//@todo: handle default
+			return getTokenInExpr(error->stmt->inner);
+		default:
+			//@todo: handle default
+			ASSERT(false)
 	}
-	printf("Error: %s", errorMessage[error->code]);
-	printf("\033[0m\n"); // reset + \n
 }
 
+void			reportError(char *source, Error *error) {
+	Token		*erroneousToken = getErroneousToken(error);
+
+	printf("\033[31m"); // red
+	printf("Error: %s\n", errorMessage[error->code]);
+	printf("\033[0m"); // reset
+	printf("\t");
+	printf("%d", erroneousToken->line);
+	printf(" | ");
+
+	uint32		startOfLine = erroneousToken->offset;
+
+	while (startOfLine && source[startOfLine] != '\n') {
+		startOfLine--;
+	}
+
+	if (source[startOfLine] == '\n') startOfLine++;
+
+	uint32		length = erroneousToken->offset - startOfLine;
+
+	while (
+		source[startOfLine + length] != '\0'
+		&& source[startOfLine + length] != '\n'
+	) {
+		length++;
+	}
+
+	printf("%.*s\n", length, &source[startOfLine]);
+
+	printf("\t%*s   ", snprintf(NULL, 0, "%d", erroneousToken->line), "");
+	printf("%*s^--- Here\n\n", erroneousToken->offset - startOfLine, "");
+}

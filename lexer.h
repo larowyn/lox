@@ -15,7 +15,7 @@
 enum 			TokenType {
 	INVALID_TOKEN,
 
-	BLANK_TOKEN,
+	IGNORED_TOKEN,
 
 	// Single-character tokens.
 	LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
@@ -132,9 +132,9 @@ struct 			Token {
 		real64		number;
 	} literal;
 
-	int32 		line;
-	int32 		offset; // From the start of the file
-	int32 		length; // Length of the lexeme
+	uint32 		line;
+	uint32 		offset; // From the start of the file
+	uint32 		length; // Length of the lexeme
 };
 
 inline void		printToken(Token *token) {

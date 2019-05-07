@@ -4,11 +4,11 @@
 
 #include <cstdio>
 
+#include "ptb/ptb_standard.h"
+#include "ptb/ptb_array.h"
 #include "lexer.h"
 #include "state.h"
 #include "error.h"
-#include "ptb/ptb_standard.h"
-#include "ptb/ptb_array.h"
 
 #define DEBUG_ENABLED 0
 #define DEBUG(expression) if (DEBUG_ENABLED) {expression}
@@ -20,6 +20,7 @@ void 	lex(State *state, char *source, Array *tokens) {
 	int32 	line = 1;
 
 	do {
+		length = 1;
 		token->line = line;
 		token->offset = current;
 
@@ -39,43 +40,33 @@ void 	lex(State *state, char *source, Array *tokens) {
 		switch (source[current]) {
 			// Single-character tokens.
 			case '(':
-				length = 1;
 				token->type = LEFT_PAREN;
 				break;
 			case ')':
-				length = 1;
 				token->type = RIGHT_PAREN;
 				break;
 			case '{':
-				length = 1;
 				token->type = LEFT_BRACE;
 				break;
 			case '}':
-				length = 1;
 				token->type = RIGHT_BRACE;
 				break;
 			case ',':
-				length = 1;
 				token->type = COMMA;
 				break;
 			case '.':
-				length = 1;
 				token->type = DOT;
 				break;
 			case '-':
-				length = 1;
 				token->type = MINUS;
 				break;
 			case '+':
-				length = 1;
 				token->type = PLUS;
 				break;
 			case ';':
-				length = 1;
 				token->type = SEMICOLON;
 				break;
 			case '*':
-				length = 1;
 				token->type = STAR;
 				break;
 
@@ -99,8 +90,6 @@ void 	lex(State *state, char *source, Array *tokens) {
 
 			// Literals
 			case '"': // String
-				length = 1;
-
 				while (source[current + length] != '"') {
 					if (source[current + length] == '\0') {
 						token->type = INVALID_TOKEN;
@@ -135,8 +124,6 @@ void 	lex(State *state, char *source, Array *tokens) {
 			case '7':
 			case '8':
 			case '9': {
-				length = 1;
-
 				uint64	integerPart = source[current] - 48;
 				uint64	floatingPart = 0;
 				f32 	floatingDepth = 1;
@@ -188,7 +175,6 @@ void 	lex(State *state, char *source, Array *tokens) {
 						length++;
 					}
 				} else {
-					length = 1;
 					token->type = SLASH;
 				}
 				break;
@@ -197,20 +183,16 @@ void 	lex(State *state, char *source, Array *tokens) {
 			case ' ':
 			case '\r':
 			case '\t':
-				length = 1;
-				token->type = BLANK_TOKEN;
+				token->type = IGNORED_TOKEN;
 				break;
 
 			case '\n':
 				line++;
-				length = 1;
-				token->type = BLANK_TOKEN;
+				token->type = IGNORED_TOKEN;
 				break;
 
 			default:
 				if (isAlpha(source[current]) || source[current] == '_') { // Reserved Keyword and identifier
-					length = 1;
-
 					while (
 							isAlpha(source[current + length])
 							|| isDigit(source[current + length])
@@ -222,7 +204,7 @@ void 	lex(State *state, char *source, Array *tokens) {
 					token->lexeme.start = &source[current];
 					token->lexeme.length = length;
 
-					// @todo: Use a map instead of those nasty strEqual
+					// @todo: Use a map instead of those substrEqual
 					if (substrEqual("and", &token->lexeme)) {
 						token->type = AND;
 					} else if (substrEqual("or", &token->lexeme)) {
@@ -261,15 +243,31 @@ void 	lex(State *state, char *source, Array *tokens) {
 
 					break;
 				} else { // Unexpected character
-					length = 1;
 					token->type = INVALID_TOKEN;
-					pushError(state, ERROR_INVALID_TOKEN, token);
 				}
 
 				break;
 		}
 
-		if (token->type != BLANK_TOKEN) {
+		if (token->type == INVALID_TOKEN) {
+			Token	*lastToken =
+				tokens->length > 1
+					? &((Token *)getStart(tokens))[tokens->length - 2]
+					: NULL;
+
+			if (lastToken && lastToken->type == INVALID_TOKEN) {
+				lastToken->length++;
+				lastToken->lexeme.length++;
+			} else {
+				token->length = 1;
+				token->lexeme.start = &source[current];
+				token->lexeme.length = 1;
+
+				pushError(state, ERROR_INVALID_TOKEN, token);
+
+				token = (Token *)getNext(tokens);
+			}
+		} else if (token->type != IGNORED_TOKEN) {
 			token->length = length;
 			token->lexeme.start = &source[current];
 			token->lexeme.length = length;

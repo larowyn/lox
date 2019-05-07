@@ -10,9 +10,9 @@
 #include "parser.h"
 #include "interpreter.h"
 
-// @todo @performance: Group all stack initialization into one alloc
-void		run(char *source) {
-	State	state;
+// @todo @performance: Group all array initialization into one alloc
+int32			run(char *source) {
+	State		state;
 
 	state.errors = NULL;
 
@@ -32,12 +32,26 @@ void		run(char *source) {
 
 	parse(&state, tokens, statements, expressions);
 
+	if (state.errors) {
+		Error	*errors = (Error *)getStart(state.errors);
+
+		printf("----- Errors -----\n");
+		for (uint32 i = 0; i < state.errors->length; i++) {
+			reportError(source, &errors[i]);
+		}
+
+		return 65;
+	}
 
 	printf("----- Eval -----\n");
 	eval(&state, statements);
+
+	return 0;
 }
 
-int32		main(int argc, char *argv[]) {
+int32			main(int argc, char *argv[]) {
+	int32		returnCode = 0;
+
 	if (argc == 1) {
 		// @todo: Implement REPL
 	} else if (argc == 2) {
@@ -49,12 +63,12 @@ int32		main(int argc, char *argv[]) {
 
 		ASSERT(size > 0)
 
-		run(source);
+		returnCode = run(source);
 
 		DEBUG_freeEntireFile(source);
 	} else {
 		printf("LoxCompiler require 1 or no arguments.");
 	}
 
-	return 0;
+	return returnCode;
 }

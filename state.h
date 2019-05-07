@@ -9,6 +9,7 @@
 
 struct		State {
 	Array	*errors;
+	bool	panicMode;
 };
 
 #endif //LOX_STATE_H

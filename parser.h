@@ -11,7 +11,11 @@
 enum 		ExprType {
 	INVALID_EXPR,
 
-	BINARY, GROUPING, LITERAL, UNARY
+	BINARY,
+	GROUPING,
+	LITERAL,
+	UNARY,
+	VARIABLE
 };
 
 struct			Expr {
@@ -29,13 +33,17 @@ struct			Expr {
 enum 		StmtType {
 	INVALID_STMT,
 
-	STMT, PRINT_STMT
+	STMT, PRINT_STMT, DECL_STMT
 };
 
 struct			Stmt {
 	StmtType	type;
 
-	Expr		*inner;
+	union {
+		Expr		*inner;
+		Expr		*initializer;
+	};
+	Token		*identifier;
 };
 
 inline char		*exprTypeToString(int32 type) {
@@ -118,6 +126,6 @@ inline void		printExpr(Expr *expr) {
 	printf("%s\n", exprToString(expr, buffers, 0));
 }
 
-void			parse(State *state, Array *tokensStack, Array *statements, Array *expressions);
+void			parse(State *state, Array *tokensArray, Array *statements, Array *expressions);
 
 #endif //LOX_PARSER_H
