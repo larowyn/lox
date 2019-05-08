@@ -28,6 +28,8 @@ enum 				ErrorCode {
 	UNTERMINATED_GROUP,
 	UNTERMINATED_STATEMENT,
 	EXPECT_VARIABLE_NAME,
+	INVALID_EXPRESSION,
+	INVALID_ASSIGNEMENT,
 
 	ERROR_CODE_LENGTH
 };
@@ -44,7 +46,9 @@ const char			errorMessage[ERROR_CODE_LENGTH][100] = {
 	// Parser errors
 	"Expect ')' after expression",
 	"Expect ';' at the end of a statement",
-	"Expect variable name"
+	"Expect variable name",
+	"Invalid expression",
+	"Invalid assignment target"
 };
 
 struct				Error {

@@ -9,9 +9,11 @@
 #include "parser.h"
 #include "interpreter.h"
 
+GLOBAL State		*state;
+
 void			reportError3(int32 line, char *message) {
 	printf("\033[31m"); // red
-	printf("[line: %d] Error: %s", line, message);
+	printf("[line: %d]: Error: %s", line, message);
 	printf("\033[0m\n"); // reset + \n
 }
 
@@ -274,6 +276,42 @@ LoxValue		evalBinary(Expr *expr) {
 	return result;
 }
 
+LoxValue		evalVariable(Expr *expr) {
+	LoxValue	*value = (LoxValue *)get(state->environment, &expr->value->lexeme);
+
+	if (value != NULL) {
+		return *value;
+	}
+
+	// @todo: Error handling
+	LoxValue	result = {
+		.type = INVALID_VALUE
+	};
+
+	reportError3(expr->value->line, "Undefined variable"); // @todo: add variable lexeme in the error message
+
+	return  result;
+}
+
+LoxValue		evalAssignment(Expr *expr) {
+	LoxValue	value = evalExpr(expr->right);
+
+	if (keyExist(state->environment, &expr->identifier->lexeme)) {
+		put(state->environment, &expr->identifier->lexeme, (void *)&value);
+
+		return value;
+	}
+
+	// @todo: Error handling
+	LoxValue	result = {
+		.type = INVALID_VALUE
+	};
+
+	reportError3(expr->value->line, "Undefined variable"); // @todo: add variable lexeme in the error message
+
+	return  result;
+}
+
 LoxValue		evalExpr(Expr *expr) {
 	switch (expr->type) {
 		case LITERAL:
@@ -284,6 +322,10 @@ LoxValue		evalExpr(Expr *expr) {
 			return evalUnary(expr);
 		case BINARY:
 			return evalBinary(expr);
+		case VARIABLE:
+			return evalVariable(expr);
+		case ASSIGNMENT:
+			return evalAssignment(expr);
 		default:
 			// @todo: Error handling
 			LoxValue	result;
@@ -303,22 +345,37 @@ void			execPrintStatement(Stmt *statement) {
 
 	result = evalExpr(statement->inner);
 
-	switch (statement->inner->type) {
-		case BINARY:
-			printf("[line: %d]: ", statement->inner->left->value->line);
-			break;
-		case GROUPING:
-			printf("[line: %d]: ", statement->inner->inner->value->line);
-			break;
-		case UNARY:
-			printf("[line: %d]: ", statement->inner->op->line);
-			break;
-		case LITERAL:
-			printf("[line: %d]: ", statement->inner->value->line);
-			break;
+	if (result.type != INVALID_VALUE) {
+		switch (statement->inner->type) {
+			case BINARY:
+				printf("[line: %d]: ", statement->inner->left->value->line);
+				break;
+			case GROUPING:
+				printf("[line: %d]: ", statement->inner->inner->value->line);
+				break;
+			case UNARY:
+				printf("[line: %d]: ", statement->inner->op->line);
+				break;
+			case LITERAL:
+			case VARIABLE:
+				printf("[line: %d]: ", statement->inner->value->line);
+				break;
+		}
+		printLoxValue(&result);
+		printf("\n");
 	}
-	printLoxValue(&result);
-	printf("\n");
+}
+
+void			execDeclarationStatement(Stmt *statement) {
+	LoxValue	value;
+
+	value.type = LOX_NIL;
+
+	if (statement->initializer) {
+		value = evalExpr(statement->initializer);
+	}
+
+	put(state->environment, &statement->identifier->lexeme, (void *)&value);
 }
 
 void			execStatement(Stmt *statement) {
@@ -329,16 +386,21 @@ void			execStatement(Stmt *statement) {
 		case PRINT_STMT:
 			execPrintStatement(statement);
 			break;
+		case DECL_STMT:
+			execDeclarationStatement(statement);
+			break;
 		default:
 			// @todo: Error handling
 			reportError3(statement->inner->value->line, "Invalid Statement");
 	}
 }
 
-void 			eval(State *state, Array *statements) {
+void 			eval(State *interpreterState, Array *statements) {
 	Stmt		*statement = (Stmt *)getStart(statements);
 
-	while (statement - (Stmt *)statements->content <= statements->length) {
+	state = interpreterState;
+
+	while (statement - (Stmt *)statements->data < statements->length) {
 		execStatement(statement);
 
 		statement++;

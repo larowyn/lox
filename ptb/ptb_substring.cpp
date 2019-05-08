@@ -33,23 +33,21 @@ bool32		substrEqual(char const *str1, Substring *str2) {
 }
 
 int32		substrCompare(Substring *sub1, Substring *sub2) {
-	char	*str1 = sub1->start;
-	char	*str2 = sub2->start;
+	int32	i = 0;
 
 	while (
-		str1 - sub1->start < sub1->length
-		&& str2 - sub2->start < sub2->length
-		&& *str1
-		&& *str1 == *str2
+		i < sub1->length
+		&& i < sub2->length
+		&& sub1->start[i]
+		&& sub1->start[i] == sub2->start[i]
 	) {
-		str1++;
-		str2++;
+		i++;
 	}
 
 	return (
-		str1 - sub1->start == sub1->length - 1 && str2 - sub2->start == sub2->length - 1
+		i == sub1->length && i == sub2->length
 			? 0
-			: (*(unsigned char*)str1 - *(unsigned char*)str2)
+			: (*(unsigned char*)sub1->start[i - 1] - *(unsigned char*)sub2->start[i - 1])
 	);
 }
 

@@ -8,16 +8,16 @@
 #include "ptb_types.h"
 
 // @improvements: Base that on system page size to maximize perf
-#define INITIAL_SIZE 64
+#define INITIAL_ARRAY_SIZE 64
 
 struct		Array {
-	byte	*content;
+	byte	*data;
 	uint32	size;
 	uint32	length;
-	uint32	granularity;
+	uint32	dataSize;
 };
 
-Array		*initArray(uint32 granularity);
+Array		*initArray(uint32 dataSize);
 void		freeArray(Array *array);
 void		*getStart(Array *array);
 void		*getNext(Array *array);

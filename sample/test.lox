@@ -1,4 +1,13 @@
-print 2 + 1;
-print "abc";
-print "one";
-print true;
+var a = 1;
+a = 420;
+print a;
+
+var toto = 12 + 30;
+print toto;
+
+var a = 1;
+var b = 2;
+print a + b;
+
+
+print undefined;

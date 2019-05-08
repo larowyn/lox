@@ -4,6 +4,7 @@
 #include "ptb/ptb_types.h"
 #include "ptb/ptb_io.h"
 #include "ptb/ptb_array.h"
+#include "ptb/ptb_map.h"
 #include "error.h"
 #include "state.h"
 #include "lexer.h"
@@ -23,12 +24,16 @@ int32			run(char *source) {
 	printf("----- Lex -----\n");
 	Array	*tokens = initArray(sizeof(Token));
 
+	if (tokens == NULL) return 65;
+
 	lex(&state, source, tokens);
 
 
 	printf("----- Parse -----\n");
 	Array	*statements = initArray(sizeof(Stmt));
 	Array	*expressions = initArray(sizeof(Expr));
+
+	if (statements == NULL || expressions == NULL) return 65;
 
 	parse(&state, tokens, statements, expressions);
 
@@ -44,6 +49,8 @@ int32			run(char *source) {
 	}
 
 	printf("----- Eval -----\n");
+	state.environment = initMap(sizeof(LoxValue), true, true);
+
 	eval(&state, statements);
 
 	return 0;

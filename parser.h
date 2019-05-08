@@ -15,19 +15,25 @@ enum 		ExprType {
 	GROUPING,
 	LITERAL,
 	UNARY,
-	VARIABLE
+	VARIABLE,
+	ASSIGNMENT
 };
 
 struct			Expr {
 	ExprType	type;
 
 	union {
-		Expr		*left;
-		Expr		*inner;
+		Expr	*left;
+		Expr	*inner;
 	};
+
 	Expr		*right;
-	Token		*op;
-	Token		*value;
+
+	union {
+		Token		*op;
+		Token		*value;
+		Token		*identifier;
+	};
 };
 
 enum 		StmtType {
@@ -40,8 +46,8 @@ struct			Stmt {
 	StmtType	type;
 
 	union {
-		Expr		*inner;
-		Expr		*initializer;
+		Expr	*inner;
+		Expr	*initializer;
 	};
 	Token		*identifier;
 };

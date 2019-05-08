@@ -6,10 +6,13 @@
 #define LOX_STATE_H
 
 #include "ptb/ptb_array.h"
+#include "ptb/ptb_map.h"
 
 struct		State {
 	Array	*errors;
-	bool	panicMode;
+
+	// Interpreter
+	Map		*environment;
 };
 
 #endif //LOX_STATE_H

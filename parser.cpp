@@ -7,19 +7,20 @@
 #include "error.h"
 #include "parser.h"
 
-GLOBAL State	*state;
-GLOBAL Token	*tokens;
-GLOBAL int32	current = 0;
+GLOBAL State		*state;
+GLOBAL Token		*tokens;
+GLOBAL int32		current = 0;
+GLOBAL ErrorCode	errorCode;
 
-INTERNAL bool	matchType(TokenType type) {
+INTERNAL bool		matchType(TokenType type) {
 	return tokens[current].type == type;
 }
 
-INTERNAL Token	*currentToken() {
+INTERNAL Token		*currentToken() {
 	return &tokens[current];
 }
 
-INTERNAL void	consume() {
+INTERNAL void		consume() {
 	current++;
 
 	while (matchType(INVALID_TOKEN)) {
@@ -27,44 +28,81 @@ INTERNAL void	consume() {
 	}
 }
 
-void			reportError2(int32 line, char *message) {
-	printf("\033[31m"); // red
-	printf("[line: %d] Error: %s", line, message);
-	printf("\033[0m\n"); // reset + \n
+void				synchronize() {
+	while (!matchType(LOX_EOF)) {
+		switch (currentToken()->type) {
+			case CLASS:
+			case FUN:
+			case VAR:
+			case FOR:
+			case IF:
+			case WHILE:
+			case PRINT:
+			case RETURN:
+				if (tokens->length > 1 && tokens[current - 1].type == SEMICOLON) {
+					return;
+				}
+				break;
+			default:
+				break;
+		}
+
+		consume();
+	}
+
+	errorCode = UNTERMINATED_STATEMENT;
 }
 
-Expr			*expression(Array *expressions);
+Expr				*expression(Array *expressions);
 
-Expr			*primary(Array *expressions) {
-	Expr		*expr = (Expr *)getNext(expressions);
+Expr				*primary(Array *expressions) {
+	Expr			*expr = (Expr *)getNext(expressions);
 
-	if (matchType(LEFT_PAREN)) {
-		expr->type = GROUPING;
+	switch (currentToken()->type) {
+		case LEFT_PAREN:
+			expr->type = GROUPING;
 
-		consume();
-		expr->inner = expression(expressions);
+			consume(); // (
 
-		if (!matchType(RIGHT_PAREN)) {
-			pushError(state, UNTERMINATED_GROUP, expr);
-		} else {
+			expr->inner = expression(expressions);
 			consume();
-		}
-	} else if (matchType(IDENTIFIER)) {
-		expr->type = VARIABLE;
-		expr->value = currentToken();
-		consume();
-	} else {
-		expr->type = LITERAL;
-		expr->value = currentToken();
-		consume();
+
+			if (!matchType(RIGHT_PAREN)) {
+				expr->type = INVALID_EXPR;
+				expr->value = currentToken();
+				errorCode = UNTERMINATED_GROUP;
+			} else {
+				consume(); // )
+			}
+			break;
+		case IDENTIFIER:
+			expr->type = VARIABLE;
+			expr->identifier = currentToken();
+			consume();
+			break;
+		case TRUE:
+		case FALSE:
+		case NIL:
+		case NUMBER:
+		case STRING:
+			expr->type = LITERAL;
+			expr->value = currentToken();
+			consume();
+			break;
+		default:
+			expr->type = INVALID_EXPR;
+			expr->value = currentToken();
+			errorCode = INVALID_EXPRESSION;
+			consume();
+			break;
 	}
 
 	return expr;
 }
 
-Expr			*unary(Array *expressions) {
+Expr				*unary(Array *expressions) {
 	if (matchType(BANG) || matchType(MINUS)) {
-		Expr	*unaryExpr = (Expr *)getNext(expressions);
+		Expr		*unaryExpr = (Expr *)getNext(expressions);
 
 		unaryExpr->type = UNARY;
 		unaryExpr->op = currentToken();
@@ -79,8 +117,8 @@ Expr			*unary(Array *expressions) {
 }
 
 // @todo: refacto all binaries expression handler into one that take the array of token to put in the while
-Expr			*multiplication(Array *expressions) {
-	Expr		*expr = unary(expressions);
+Expr				*multiplication(Array *expressions) {
+	Expr			*expr = unary(expressions);
 
 	while (matchType(STAR) || matchType(SLASH)) {
 		Expr	*binaryExpr = (Expr *)getNext(expressions);
@@ -98,8 +136,8 @@ Expr			*multiplication(Array *expressions) {
 	return expr;
 }
 
-Expr			*addition(Array *expressions) {
-	Expr		*expr = multiplication(expressions);
+Expr				*addition(Array *expressions) {
+	Expr			*expr = multiplication(expressions);
 
 	while (matchType(PLUS) || matchType(MINUS)) {
 		Expr	*binaryExpr = (Expr *)getNext(expressions);
@@ -117,8 +155,8 @@ Expr			*addition(Array *expressions) {
 	return expr;
 }
 
-Expr			*comparison(Array *expressions) {
-	Expr		*expr = addition(expressions);
+Expr				*comparison(Array *expressions) {
+	Expr			*expr = addition(expressions);
 
 	while (
 		matchType(GREATER)
@@ -141,8 +179,8 @@ Expr			*comparison(Array *expressions) {
 	return expr;
 }
 
-Expr			*equality(Array *expressions) {
-	Expr		*expr = comparison(expressions);
+Expr				*equality(Array *expressions) {
+	Expr			*expr = comparison(expressions);
 
 	while (matchType(EQUAL_EQUAL) || matchType(BANG_EQUAL)) {
 		Expr	*binaryExpr = (Expr *)getNext(expressions);
@@ -160,12 +198,34 @@ Expr			*equality(Array *expressions) {
 	return expr;
 }
 
-Expr			*expression(Array *expressions) {
-	return equality(expressions);
+Expr				*assignment(Array *expressions) {
+	Expr			*expr = equality(expressions);
+
+	if (matchType(EQUAL)) {
+		if (expr->type != VARIABLE) {
+			expr->type = INVALID_EXPR;
+			expr->value = currentToken();
+			errorCode = INVALID_ASSIGNEMENT;
+			return expr;
+		}
+
+		expr->type = ASSIGNMENT;
+
+		consume(); // =
+		expr->right = assignment(expressions);
+
+		return expr;
+	}
+
+	return expr;
 }
 
-Stmt			*expressionStatement(Array *statements, Array *expressions) {
-	Stmt		*statement = (Stmt *)getNext(statements);
+Expr				*expression(Array *expressions) {
+	return assignment(expressions);
+}
+
+Stmt				*expressionStatement(Array *statements, Array *expressions) {
+	Stmt			*statement = (Stmt *)getNext(statements);
 
 	statement->type = STMT;
 	statement->inner = expression(expressions);
@@ -173,8 +233,8 @@ Stmt			*expressionStatement(Array *statements, Array *expressions) {
 	return statement;
 }
 
-Stmt			*printStatement(Array *statements, Array *expressions) {
-	Stmt		*statement = (Stmt *)getNext(statements);
+Stmt				*printStatement(Array *statements, Array *expressions) {
+	Stmt			*statement = (Stmt *)getNext(statements);
 
 	statement->type = PRINT_STMT;
 
@@ -184,8 +244,8 @@ Stmt			*printStatement(Array *statements, Array *expressions) {
 	return statement;
 }
 
-Stmt			*statement(Array *statements, Array *expressions) {
-	Stmt		*stmt;
+Stmt				*statement(Array *statements, Array *expressions) {
+	Stmt			*stmt;
 
 	if (matchType(PRINT)) {
 		stmt = printStatement(statements, expressions);
@@ -196,8 +256,8 @@ Stmt			*statement(Array *statements, Array *expressions) {
 	return stmt;
 }
 
-Stmt			*declarationStatement(Array *statements, Array *expressions) {
-	Stmt		*stmt = (Stmt *)getNext(statements);
+Stmt				*declarationStatement(Array *statements, Array *expressions) {
+	Stmt			*stmt = (Stmt *)getNext(statements);
 
 	stmt->type = DECL_STMT;
 
@@ -205,7 +265,9 @@ Stmt			*declarationStatement(Array *statements, Array *expressions) {
 
 	if (!matchType(IDENTIFIER)) {
 		stmt->type = INVALID_STMT;
-		pushError(state, EXPECT_VARIABLE_NAME, stmt);
+		stmt->inner->type = INVALID_EXPR;
+		stmt->inner->value = currentToken();
+		errorCode = UNTERMINATED_GROUP;
 	} else {
 		stmt->initializer = NULL;
 		stmt->identifier = currentToken();
@@ -220,8 +282,8 @@ Stmt			*declarationStatement(Array *statements, Array *expressions) {
 	return stmt;
 }
 
-Stmt			*declaration(Array *statements, Array *expressions) {
-	Stmt		*stmt;
+Stmt				*declaration(Array *statements, Array *expressions) {
+	Stmt			*stmt;
 
 	if (matchType(VAR)) {
 		stmt = declarationStatement(statements, expressions);
@@ -229,19 +291,33 @@ Stmt			*declaration(Array *statements, Array *expressions) {
 		stmt = statement(statements, expressions);
 	}
 
-	// @todo: error synchronization should happen here if an error happen
+	if (stmt->type == INVALID_STMT || stmt->inner->type == INVALID_EXPR) {
+		if (stmt->type == INVALID_STMT) {
+			pushError(state, errorCode, stmt);
+		} else {
+			pushError(state, errorCode, stmt->inner);
+		}
 
-	if (!matchType(SEMICOLON)) {
+		errorCode = INVALID_ERROR_CODE;
+
 		stmt->type = INVALID_STMT;
-		pushError(state, UNTERMINATED_STATEMENT, stmt);
+		stmt->inner->type = INVALID_EXPR;
+
+		// Synchronize
+		synchronize();
 	} else {
-		consume();
+		if (!matchType(SEMICOLON)) {
+			stmt->type = INVALID_STMT;
+			pushError(state, UNTERMINATED_STATEMENT, stmt);
+		} else {
+			consume();
+		}
 	}
 
 	return stmt;
 }
 
-void 			parse(State *interpreterState, Array *tokensArray, Array *statements, Array *expressions) {
+void 				parse(State *interpreterState, Array *tokensArray, Array *statements, Array *expressions) {
 	state = interpreterState;
 	tokens = (Token *)getStart(tokensArray);
 
@@ -252,5 +328,6 @@ void 			parse(State *interpreterState, Array *tokensArray, Array *statements, Ar
 
 	while (!matchType(LOX_EOF)) {
 		declaration(statements, expressions);
+		errorCode = INVALID_ERROR_CODE;
 	}
 }

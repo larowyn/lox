@@ -51,6 +51,8 @@ INTERNAL Token	*getTokenInExpr(Expr *expr) {
 			return expr->op;
 		case LITERAL:
 			return expr->value;
+		case INVALID_EXPR:
+			return expr->value;
 		default:
 			//@todo: handle default
 			ASSERT(false)
