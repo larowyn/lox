@@ -7,15 +7,17 @@
 
 #include "ptb_types.h"
 
-struct		Substring {
+struct		SubString {
 	char	*start;
 	int32	length;
 };
 
-void		printSubstring(Substring *substring);
-int32		substrCompare(char const *str1, Substring *substring);
-int32		substrCompare(Substring *sub1, Substring *sub2);
-bool32		substrEqual(char const *str1, Substring *str2);
-bool32		substrEqual(Substring *str1, Substring *str2);
+void		printSubstring(SubString *substr);
+
+int32		substrCompare(char const *str1, SubString *substr);
+int32		substrCompare(SubString *sub1, SubString *sub2);
+
+bool32		substrEqual(char const *str1, SubString *str2);
+bool32		substrEqual(SubString *str1, SubString *str2);
 
 #endif // PTB_SUBSTRING_H

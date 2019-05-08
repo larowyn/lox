@@ -72,3 +72,12 @@ void			*getNext(Array *array) {
 	array->length++;
 	return array->data + ((array->length - 1) * array->dataSize);
 }
+
+void			*pop(Array *array) {
+	if (array->length == 0) {
+		return NULL;
+	}
+
+	array->length--;
+	return array->data + ((array->length - 1) * array->dataSize);
+}

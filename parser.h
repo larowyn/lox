@@ -8,7 +8,7 @@
 #include "state.h"
 #include "lexer.h"
 
-enum 		ExprType {
+enum 				ExprType {
 	INVALID_EXPR,
 
 	BINARY,
@@ -16,18 +16,20 @@ enum 		ExprType {
 	LITERAL,
 	UNARY,
 	VARIABLE,
-	ASSIGNMENT
+	ASSIGNMENT,
+
+	BLOCK_EXPR // Fake expression to handle block @todo: Figure this out
 };
 
-struct			Expr {
-	ExprType	type;
+struct				Expr {
+	ExprType		type;
 
 	union {
-		Expr	*left;
-		Expr	*inner;
+		Expr		*left;
+		Expr		*inner;
 	};
 
-	Expr		*right;
+	Expr			*right;
 
 	union {
 		Token		*op;
@@ -36,23 +38,32 @@ struct			Expr {
 	};
 };
 
-enum 		StmtType {
+enum 				StmtType {
 	INVALID_STMT,
 
-	STMT, PRINT_STMT, DECL_STMT
+	STMT,
+	PRINT_STMT,
+	DECL_STMT,
+	BLOCK
 };
 
-struct			Stmt {
-	StmtType	type;
+struct				Stmt {
+	StmtType		type;
 
 	union {
-		Expr	*inner;
-		Expr	*initializer;
+		Expr		*inner;
+		Expr		*initializer;
 	};
-	Token		*identifier;
+
+	SubArray		statements;
+
+	union {
+		Token		*identifier;
+		Token		*blockStart;
+	};
 };
 
-inline char		*exprTypeToString(int32 type) {
+inline char			*exprTypeToString(int32 type) {
 	switch (type) {
 		case INVALID_EXPR:
 			return "INVALID_EXPR";
@@ -69,7 +80,7 @@ inline char		*exprTypeToString(int32 type) {
 	}
 }
 
-inline char		*stmtTypeToString(int32 type) {
+inline char			*stmtTypeToString(int32 type) {
 	switch (type) {
 		case INVALID_STMT:
 			return "INVALID_STMT";
@@ -77,12 +88,16 @@ inline char		*stmtTypeToString(int32 type) {
 			return "STMT";
 		case PRINT_STMT:
 			return "PRINT_STMT";
+		case DECL_STMT:
+			return "DECL_STMT";
+		case BLOCK:
+			return "BLOCK";
 		default:
 			return "UNKNOWN";
 	}
 }
 
-inline char		*exprToString(Expr *expr, char buffers[1000][1000], int32 index) {
+inline char			*exprToString(Expr *expr, char buffers[1000][1000], int32 index) {
 	char *buffer = buffers[index];
 
 	ASSERT(index < 1000)
@@ -126,12 +141,13 @@ inline char		*exprToString(Expr *expr, char buffers[1000][1000], int32 index) {
 	}
 }
 
-inline void		printExpr(Expr *expr) {
+inline void			printExpr(Expr *expr) {
 	char buffers [1000][1000]; // @todo
 
 	printf("%s\n", exprToString(expr, buffers, 0));
 }
 
-void			parse(State *state, Array *tokensArray, Array *statements, Array *expressions);
+void				parse(State *state, Array *tokensArray, Array *statements, Array *expressions);
+uint32				DEBUG_printStatements(char *source, Array *statements, uint32 length, int32 nesting);
 
 #endif //LOX_PARSER_H

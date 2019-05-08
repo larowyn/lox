@@ -24,7 +24,7 @@ struct				LoxValue {
 
 	union {
 		r64			number;
-		Substring	*string;
+		SubString	*string;
 		bool32		boolean;
 	};
 };

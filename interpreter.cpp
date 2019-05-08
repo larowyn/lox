@@ -9,15 +9,19 @@
 #include "parser.h"
 #include "interpreter.h"
 
-GLOBAL State		*state;
+GLOBAL State	*state;
 
-void			reportError3(int32 line, char *message) {
+INTERNAL Map	*currentEnvMap(State *state) {
+	return state->currentEnv->env;
+}
+
+INTERNAL void	reportError3(int32 line, char *message) {
 	printf("\033[31m"); // red
 	printf("[line: %d]: Error: %s", line, message);
 	printf("\033[0m\n"); // reset + \n
 }
 
-bool32			isTruthy(LoxValue value) {
+INTERNAL bool32	isTruthy(LoxValue value) {
 	switch (value.type) {
 		case LOX_NUMBER:
 			return 1;
@@ -33,6 +37,7 @@ bool32			isTruthy(LoxValue value) {
 	}
 }
 
+uint32			execStatement(Stmt *statement);
 LoxValue		evalExpr(Expr *expr);
 
 LoxValue		evalLiteral(Expr *expr) {
@@ -277,7 +282,13 @@ LoxValue		evalBinary(Expr *expr) {
 }
 
 LoxValue		evalVariable(Expr *expr) {
-	LoxValue	*value = (LoxValue *)get(state->environment, &expr->value->lexeme);
+	LoxValue	*value = NULL;
+	Env			*env = state->currentEnv;
+
+	while (value == NULL && env != NULL) {
+		value = (LoxValue *)get(env->env, &expr->value->lexeme);
+		env = env->enclosing;
+	}
 
 	if (value != NULL) {
 		return *value;
@@ -287,7 +298,6 @@ LoxValue		evalVariable(Expr *expr) {
 	LoxValue	result = {
 		.type = INVALID_VALUE
 	};
-
 	reportError3(expr->value->line, "Undefined variable"); // @todo: add variable lexeme in the error message
 
 	return  result;
@@ -295,18 +305,22 @@ LoxValue		evalVariable(Expr *expr) {
 
 LoxValue		evalAssignment(Expr *expr) {
 	LoxValue	value = evalExpr(expr->right);
+	Env			*env = state->currentEnv;
 
-	if (keyExist(state->environment, &expr->identifier->lexeme)) {
-		put(state->environment, &expr->identifier->lexeme, (void *)&value);
+	while (env != NULL) {
+		if (keyExist(currentEnvMap(state), &expr->identifier->lexeme)) {
+			put(currentEnvMap(state), &expr->identifier->lexeme, (void *)&value);
 
-		return value;
+			return value;
+		}
+
+		env = env->enclosing;
 	}
 
 	// @todo: Error handling
 	LoxValue	result = {
 		.type = INVALID_VALUE
 	};
-
 	reportError3(expr->value->line, "Undefined variable"); // @todo: add variable lexeme in the error message
 
 	return  result;
@@ -375,10 +389,42 @@ void			execDeclarationStatement(Stmt *statement) {
 		value = evalExpr(statement->initializer);
 	}
 
-	put(state->environment, &statement->identifier->lexeme, (void *)&value);
+	put(currentEnvMap(state), &statement->identifier->lexeme, (void *)&value);
 }
 
-void			execStatement(Stmt *statement) {
+void			execBlock(Stmt *statement) {
+	// If the block is empty we return immediately
+	if (statement->statements.start == NULL) {
+		return;
+	}
+
+	// ----- Push new env -----
+	Env			*newEnv = (Env *)getNext(state->environments);
+
+	newEnv->enclosing = state->currentEnv;
+	newEnv->env = initMap(sizeof(LoxValue), true, true);
+
+	if (newEnv->env == NULL) {
+		// @todo: error handling
+		ASSERT(false)
+	}
+
+	state->currentEnv = newEnv;
+
+	// ----- Execute statements -----
+	uint32		index = 0;
+
+	while (index < statement->statements.length) {
+		index += execStatement(&((Stmt *)statement->statements.start)[index]);
+	}
+
+	// ----- Pop new env -----
+	// @improvements: maybe we dont free the first 4-5 env since its likely that we will need it again
+	freeMap(newEnv->env);
+	state->currentEnv = (Env *)pop(state->environments);
+}
+
+uint32			execStatement(Stmt *statement) {
 	switch (statement->type) {
 		case STMT:
 			execExpressionStatement(statement);
@@ -389,20 +435,27 @@ void			execStatement(Stmt *statement) {
 		case DECL_STMT:
 			execDeclarationStatement(statement);
 			break;
+		case BLOCK:
+			execBlock(statement);
+			return statement->statements.length + 1;
 		default:
 			// @todo: Error handling
-			reportError3(statement->inner->value->line, "Invalid Statement");
+			if (statement->inner) {
+				reportError3(statement->inner->value->line, "Invalid Statement");
+			} else {
+				reportError3(statement->blockStart->line, "Invalid Block");
+			}
 	}
+
+	return 1;
 }
 
 void 			eval(State *interpreterState, Array *statements) {
-	Stmt		*statement = (Stmt *)getStart(statements);
+	uint32		index = 0;
 
 	state = interpreterState;
 
-	while (statement - (Stmt *)statements->data < statements->length) {
-		execStatement(statement);
-
-		statement++;
+	while (index < statements->length) {
+		index += execStatement(&((Stmt *)statements->data)[index]);
 	}
 }

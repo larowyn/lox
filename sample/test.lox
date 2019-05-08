@@ -1,13 +1,24 @@
-var a = 1;
-a = 420;
+var a = "global a";
+var b = "global b";
+var c = "global c";
+
+{
+    var a = "outer a";
+    var b = "outer b";
+
+    {
+        var a = "inner a";
+
+        print a;
+        print b;
+        print c;
+    }
+
+    print a;
+    print b;
+    print c;
+}
+
 print a;
-
-var toto = 12 + 30;
-print toto;
-
-var a = 1;
-var b = 2;
-print a + b;
-
-
-print undefined;
+print b;
+print c;

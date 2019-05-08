@@ -30,6 +30,7 @@ enum 				ErrorCode {
 	EXPECT_VARIABLE_NAME,
 	INVALID_EXPRESSION,
 	INVALID_ASSIGNEMENT,
+	UNTERMINATED_BLOCK,
 
 	ERROR_CODE_LENGTH
 };
@@ -48,7 +49,8 @@ const char			errorMessage[ERROR_CODE_LENGTH][100] = {
 	"Expect ';' at the end of a statement",
 	"Expect variable name",
 	"Invalid expression",
-	"Invalid assignment target"
+	"Invalid assignment target",
+	"Expect '}' after block."
 };
 
 struct				Error {

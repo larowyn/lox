@@ -17,7 +17,7 @@
 struct				MapValue {
 	union {
 		char		*key;
-		Substring	*keySubstring;
+		SubString	*keySubstring;
 	};
 
 	void			*data;
@@ -52,7 +52,7 @@ struct				Map {
 };
 
 uint32				hashString(char *str);
-uint32				hashSubString(Substring *substr);
+uint32				hashSubString(SubString *substr);
 
 Map					*initMap(uint32 dataSize);
 Map					*initMap(uint32 dataSize, bool useArenaToStoreData);
@@ -61,12 +61,12 @@ Map					*initMap(uint32 dataSize, bool useArenaToStoreData, bool useSubstringFor
 void				freeMap(Map *map);
 
 void				*put(Map *map, char *key, void *value);
-void				*put(Map *map, Substring *key, void *value);
+void				*put(Map *map, SubString *key, void *value);
 
 void				*get(Map *map, char *key);
-void				*get(Map *map, Substring *key);
+void				*get(Map *map, SubString *key);
 
 bool				keyExist(Map *map, char *key);
-bool				keyExist(Map *map, Substring *key);
+bool				keyExist(Map *map, SubString *key);
 
 #endif // PTB_MAP_H

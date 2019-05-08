@@ -45,7 +45,7 @@ uint32				hashString(char *str) {
 	return hash;
 }
 
-uint32				hashSubString(Substring *substr) {
+uint32				hashSubString(SubString *substr) {
 	uint32			hash = 5381;
 	int32			c;
 
@@ -122,7 +122,7 @@ INTERNAL uint32		indexFromKey(Map *map, void *key) {
 	uint32			hash;
 
 	if (map->useSubstringForKey) {
-		hash = hashSubString((Substring *)key);
+		hash = hashSubString((SubString *)key);
 	} else {
 		hash = hashString((char *)key);
 	}
@@ -138,7 +138,7 @@ INTERNAL uint32		indexFromKey(Map *map, void *key) {
 				!current.isUsed
 				|| (
 					map->useSubstringForKey
-						? substrEqual((Substring *)key, current.value.keySubstring)
+						? substrEqual((SubString *)key, current.value.keySubstring)
 						: strEqual((char *)key, current.value.key)
 				)
 			) {
@@ -162,7 +162,7 @@ INTERNAL void		*_put(Map *map, void *key, void *value) {
 	content->isUsed = true;
 
 	if (map->useSubstringForKey) {
-		content->value.keySubstring = (Substring *)key;
+		content->value.keySubstring = (SubString *)key;
 	} else {
 		content->value.key = (char *)key;
 	}
@@ -184,7 +184,7 @@ void				*put(Map *map, char *key, void *value) {
 	return _put(map, (void *)key, value);
 }
 
-void				*put(Map *map, Substring *key, void *value) {
+void				*put(Map *map, SubString *key, void *value) {
 	return _put(map, (void *)key, value);
 }
 
@@ -199,7 +199,7 @@ void				*get(Map *map, char *key) {
 	return _get(map, (void *)key);
 }
 
-void				*get(Map *map, Substring *key) {
+void				*get(Map *map, SubString *key) {
 	return _get(map, (void *)key);
 }
 
@@ -214,6 +214,6 @@ bool				keyExist(Map *map, char *key) {
 	return _keyExist(map, (void *)key);
 }
 
-bool				keyExist(Map *map, Substring *key) {
+bool				keyExist(Map *map, SubString *key) {
 	return _keyExist(map, (void *)key);
 }

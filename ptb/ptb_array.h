@@ -17,9 +17,16 @@ struct		Array {
 	uint32	dataSize;
 };
 
+struct		SubArray {
+	byte	*start;
+	uint32	length;
+	uint32	dataSize;
+};
+
 Array		*initArray(uint32 dataSize);
 void		freeArray(Array *array);
 void		*getStart(Array *array);
 void		*getNext(Array *array);
+void		*pop(Array *array);
 
 #endif // PTB_ARRAY_H

@@ -66,7 +66,7 @@ INTERNAL Token	*getErroneousToken(Error *error) {
 		case EXPR_ERROR:
 			return getTokenInExpr(error->expr);
 		case STMT_ERROR:
-			return getTokenInExpr(error->stmt->inner);
+			return error->stmt->inner ? getTokenInExpr(error->stmt->inner) : error->stmt->blockStart;
 		default:
 			//@todo: handle default
 			ASSERT(false)

@@ -4,16 +4,16 @@
 
 #include "ptb_substring.h"
 
-void		printSubstring(Substring *substring) {
-	printf("%.*s", substring->length, substring->start);
+void		printSubstring(SubString *substr) {
+	printf("%.*s", substr->length, substr->start);
 }
 
-int32		substrCompare(char const *str1, Substring *substring) {
-	char	*str2 = substring->start;
+int32		substrCompare(char const *str1, SubString *substr) {
+	char	*str2 = substr->start;
 
 	while (
 		*str1
-		&& str2 - substring->start < substring->length
+		&& str2 - substr->start < substr->length
 		&& *str1 == *str2
 	) {
 		str1++;
@@ -23,7 +23,7 @@ int32		substrCompare(char const *str1, Substring *substring) {
 	return !*str1 ? 0 : (*(unsigned char*)str1 - *(unsigned char*)str2);
 }
 
-bool32		substrEqual(char const *str1, Substring *str2) {
+bool32		substrEqual(char const *str1, SubString *str2) {
 	if (str1 && str2) {
 		if (substrCompare(str1, str2) == 0)
 			return 1;
@@ -32,7 +32,7 @@ bool32		substrEqual(char const *str1, Substring *str2) {
 	return 0;
 }
 
-int32		substrCompare(Substring *sub1, Substring *sub2) {
+int32		substrCompare(SubString *sub1, SubString *sub2) {
 	int32	i = 0;
 
 	while (
@@ -51,7 +51,7 @@ int32		substrCompare(Substring *sub1, Substring *sub2) {
 	);
 }
 
-bool32		substrEqual(Substring *str1, Substring *str2) {
+bool32		substrEqual(SubString *str1, SubString *str2) {
 	if (str1 && str2) {
 		if (substrCompare(str1, str2) == 0)
 			return 1;

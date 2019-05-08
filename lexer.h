@@ -126,9 +126,9 @@ inline char 	*tokenTypeToString(int32 type) {
 
 struct 			Token {
 	TokenType	type;
-	Substring	lexeme;
+	SubString	lexeme;
 	union {
-		Substring	string;
+		SubString	string;
 		real64		number;
 	} literal;
 

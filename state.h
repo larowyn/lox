@@ -8,11 +8,17 @@
 #include "ptb/ptb_array.h"
 #include "ptb/ptb_map.h"
 
+struct		Env {
+	Env		*enclosing;
+	Map		*env;
+};
+
 struct		State {
 	Array	*errors;
 
 	// Interpreter
-	Map		*environment;
+	Array	*environments;
+	Env		*currentEnv;
 };
 
 #endif //LOX_STATE_H

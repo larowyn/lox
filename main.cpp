@@ -48,8 +48,18 @@ int32			run(char *source) {
 		return 65;
 	}
 
+	DEBUG_printStatements(source, statements, statements->length, 0);
+
 	printf("----- Eval -----\n");
-	state.environment = initMap(sizeof(LoxValue), true, true);
+	state.environments = initArray(sizeof(Env));
+	state.currentEnv = (Env *)getNext(state.environments);
+
+	if (state.currentEnv == NULL) return 65;
+
+	state.currentEnv->enclosing = NULL;
+	state.currentEnv->env = initMap(sizeof(LoxValue), true, true);
+
+	if (state.currentEnv->env == NULL) return 65;
 
 	eval(&state, statements);
 
