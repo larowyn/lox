@@ -17,6 +17,16 @@ var c = "global c";
     print a;
     print b;
     print c;
+
+    {
+        var a = "inner a 2";
+
+        print a;
+    }
+
+    // @todo: bug with scopes
+    print b;
+    print c;
 }
 
 print a;

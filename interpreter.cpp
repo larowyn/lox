@@ -437,7 +437,7 @@ uint32			execStatement(Stmt *statement) {
 			break;
 		case BLOCK:
 			execBlock(statement);
-			return statement->statements.length + 1;
+			return statement->statements.length + 1; // We skip the statements executed by the block itself
 		default:
 			// @todo: Error handling
 			if (statement->inner) {
