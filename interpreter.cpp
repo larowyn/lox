@@ -326,6 +326,18 @@ LoxValue		evalAssignment(Expr *expr) {
 	return  result;
 }
 
+LoxValue		evalLogicExpr(Expr *expr) {
+	LoxValue	left = evalExpr(expr->left);
+
+	if (expr->type == LOGIC_OR && isTruthy(left)) {
+		return left;
+	} else if (expr->type == LOGIC_AND && !isTruthy(left)) {
+		return left;
+	}
+
+	return evalExpr(expr->right);
+}
+
 LoxValue		evalExpr(Expr *expr) {
 	switch (expr->type) {
 		case LITERAL:
@@ -340,6 +352,9 @@ LoxValue		evalExpr(Expr *expr) {
 			return evalVariable(expr);
 		case ASSIGNMENT:
 			return evalAssignment(expr);
+		case LOGIC_OR:
+		case LOGIC_AND:
+			return evalLogicExpr(expr);
 		default:
 			// @todo: Error handling
 			LoxValue	result;
@@ -362,6 +377,8 @@ void			execPrintStatement(Stmt *statement) {
 	if (result.type != INVALID_VALUE) {
 		switch (statement->inner->type) {
 			case BINARY:
+			case LOGIC_OR:
+			case LOGIC_AND:
 				printf("[line: %d]: ", statement->inner->left->value->line);
 				break;
 			case GROUPING:
@@ -392,7 +409,7 @@ void			execDeclarationStatement(Stmt *statement) {
 	put(currentEnvMap(state), &statement->identifier->lexeme, (void *)&value);
 }
 
-void			execBlock(Stmt *statement) {
+void			execBlockStatement(Stmt *statement) {
 	// If the block is empty we return immediately
 	if (statement->statements.start == NULL) {
 		return;
@@ -424,6 +441,31 @@ void			execBlock(Stmt *statement) {
 	state->currentEnv = (Env *)pop(state->environments);
 }
 
+void			execIfStatement(Stmt *statement) {
+	LoxValue	conditionValue = evalExpr(statement->condition);
+
+	if (isTruthy(conditionValue)) {
+		execStatement(statement->thenBranch);
+	} else if (statement->elseBranch) {
+		execStatement(statement->elseBranch);
+	}
+}
+
+void			execLoopStatement(Stmt *statement) {
+	int32 		maxIteration = 20; // @todo: better way to prevent infinite loop and/or better value
+
+	if (statement->stmtStart->type == FOR && statement->condition == NULL) {
+		// If its a for loop and there is no condition its a while (true) loop
+		while (maxIteration--) {
+			execStatement(statement->body);
+		}
+	} else {
+		while (isTruthy(evalExpr(statement->condition)) && maxIteration--) {
+			execStatement(statement->body);
+		}
+	}
+}
+
 uint32			execStatement(Stmt *statement) {
 	switch (statement->type) {
 		case STMT:
@@ -435,15 +477,21 @@ uint32			execStatement(Stmt *statement) {
 		case DECL_STMT:
 			execDeclarationStatement(statement);
 			break;
-		case BLOCK:
-			execBlock(statement);
+		case BLOCK_STMT:
+			execBlockStatement(statement);
 			return statement->statements.length + 1; // We skip the statements executed by the block itself
+		case IF_STMT:
+			execIfStatement(statement);
+			break;
+		case WHILE_STMT:
+			execLoopStatement(statement);
+			return 2; // We skip the body of the loop statement
 		default:
 			// @todo: Error handling
 			if (statement->inner) {
 				reportError3(statement->inner->value->line, "Invalid Statement");
 			} else {
-				reportError3(statement->blockStart->line, "Invalid Block");
+				reportError3(statement->stmtStart->line, "Invalid Block");
 			}
 	}
 

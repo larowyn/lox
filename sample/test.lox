@@ -1,34 +1,20 @@
-var a = "global a";
-var b = "global b";
-var c = "global c";
+print "hi" or 2; // "hi".
+print nil or "yes"; // "yes".
 
-{
-    var a = "outer a";
-    var b = "outer b";
+var i = 0;
 
-    {
-        var a = "inner a";
-
-        print a;
-        print b;
-        print c;
-    }
-
-    print a;
-    print b;
-    print c;
-
-    {
-        var a = "inner a 2";
-
-        print a;
-    }
-
-    // @todo: bug with scopes
-    print b;
-    print c;
+while (i < 10) {
+    print i;
+    i = i + 1;
 }
 
-print a;
-print b;
-print c;
+// @todo: bug on loop, seems scope related
+//var a = 0;
+//var b = 1;
+
+//while (a < 1000) {
+//  print a;
+//  var temp = a;
+//  a = b;
+//  b = temp + b;
+//}

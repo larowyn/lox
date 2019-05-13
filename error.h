@@ -31,6 +31,13 @@ enum 				ErrorCode {
 	INVALID_EXPRESSION,
 	INVALID_ASSIGNEMENT,
 	UNTERMINATED_BLOCK,
+	IF_MISSING_LEFT_PAREN,
+	CONDITION_MISSING_RIGHT_PAREN,
+	WHILE_MISSING_LEFT_PAREN,
+	FOR_MISSING_LEFT_PAREN,
+	FOR_MISSING_SEMICOLON_AFTER_INITIALIZER,
+	FOR_MISSING_SEMICOLON_AFTER_CONDITION,
+	FOR_MISSING_RIGHT_PAREN,
 
 	ERROR_CODE_LENGTH
 };
@@ -50,7 +57,14 @@ const char			errorMessage[ERROR_CODE_LENGTH][100] = {
 	"Expect variable name",
 	"Invalid expression",
 	"Invalid assignment target",
-	"Expect '}' after block."
+	"Expect '}' after block",
+	"Expect '(' after 'if'",
+	"Expect ')' after condition",
+	"Expect '(' after 'while'",
+	"Expect '(' after 'for'",
+	"Expect ';' after initializer in 'for'",
+	"Expect ';' after condition in 'for'",
+	"Expect ')' after increment in 'for'",
 };
 
 struct				Error {

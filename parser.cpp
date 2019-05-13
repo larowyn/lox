@@ -54,6 +54,8 @@ void				synchronize() {
 }
 
 Stmt				*declaration(Array *statements, Array *expressions);
+Stmt				*declarationStatement(Array *statements, Array *expressions);
+Stmt				*statement(Array *statements, Array *expressions);
 Expr				*expression(Array *expressions);
 
 Expr				*primary(Array *expressions) {
@@ -199,8 +201,46 @@ Expr				*equality(Array *expressions) {
 	return expr;
 }
 
-Expr				*assignment(Array *expressions) {
+Expr				*logicAnd(Array *expressions) {
 	Expr			*expr = equality(expressions);
+
+	if (matchType(AND)) {
+		Expr	*logicAndExpr = (Expr *)getNext(expressions);
+
+		logicAndExpr->type = LOGIC_OR;
+		logicAndExpr->left = expr;
+
+		logicAndExpr->op = currentToken();
+		consume(); // ||
+
+		logicAndExpr->right = equality(expressions);
+		expr = logicAndExpr;
+	}
+
+	return expr;
+}
+
+Expr				*logicOr(Array *expressions) {
+	Expr			*expr = logicAnd(expressions);
+
+	if (matchType(OR)) {
+		Expr	*logicOrExpr = (Expr *)getNext(expressions);
+
+		logicOrExpr->type = LOGIC_OR;
+		logicOrExpr->left = expr;
+
+		logicOrExpr->op = currentToken();
+		consume(); // ||
+
+		logicOrExpr->right = logicAnd(expressions);
+		expr = logicOrExpr;
+	}
+
+	return expr;
+}
+
+Expr				*assignment(Array *expressions) {
+	Expr			*expr = logicOr(expressions);
 
 	if (matchType(EQUAL)) {
 		if (expr->type != VARIABLE) {
@@ -245,11 +285,11 @@ Stmt				*printStatement(Array *statements, Array *expressions) {
 	return stmt;
 }
 
-Stmt				*block(Array *statements, Array *expressions) {
+Stmt				*blockStatement(Array *statements, Array *expressions) {
 	Stmt			*blockStmt = (Stmt *)getNext(statements);
 
-	blockStmt->type = BLOCK;
-	blockStmt->blockStart = currentToken();
+	blockStmt->type = BLOCK_STMT;
+	blockStmt->stmtStart = currentToken();
 
 	consume(); // {
 
@@ -264,7 +304,7 @@ Stmt				*block(Array *statements, Array *expressions) {
 			blockStmt->statements.start = (byte *)stmt;
 		}
 
-		blockStmt->statements.length += stmt->type == BLOCK ? stmt->statements.length : 1;
+		blockStmt->statements.length += stmt->type == BLOCK_STMT ? (stmt->statements.length + 1) : 1;
 
 		errorCode = INVALID_ERROR_CODE; // Reset error code between statements
 	}
@@ -282,6 +322,199 @@ Stmt				*block(Array *statements, Array *expressions) {
 	return blockStmt;
 }
 
+Stmt				*ifStatement(Array *statements, Array *expressions) {
+	Stmt			*ifStmt = (Stmt *)getNext(statements);
+
+	ifStmt->type = IF_STMT;
+	ifStmt->stmtStart = currentToken();
+
+	consume(); // if
+
+	if (!matchType(LEFT_PAREN)) {
+		ifStmt->type = INVALID_STMT;
+		ifStmt->inner->type = INVALID_EXPR;
+		ifStmt->inner->value = currentToken();
+		errorCode = IF_MISSING_LEFT_PAREN;
+		return ifStmt;
+	}
+
+	consume(); // (
+
+	ifStmt->condition = expression(expressions);
+
+	if (!matchType(RIGHT_PAREN)) {
+		ifStmt->type = INVALID_STMT;
+		ifStmt->inner->type = INVALID_EXPR;
+		ifStmt->inner->value = currentToken();
+		errorCode = CONDITION_MISSING_RIGHT_PAREN;
+		return ifStmt;
+	}
+
+	consume(); // )
+
+	ifStmt->thenBranch = statement(statements, expressions);
+
+	ifStmt->elseBranch = NULL;
+	if (matchType(ELSE)) {
+		ifStmt->elseBranch = statement(statements, expressions);
+	}
+
+	return ifStmt;
+}
+
+Stmt				*whileStatement(Array *statements, Array *expressions) {
+	Stmt			*whileStmt = (Stmt *)getNext(statements);
+
+	whileStmt->type = WHILE_STMT;
+	whileStmt->stmtStart = currentToken(); // @todo: set stmtStart for all statement
+
+	consume(); // while
+
+	if (!matchType(LEFT_PAREN)) {
+		whileStmt->type = INVALID_STMT;
+		whileStmt->inner->type = INVALID_EXPR;
+		whileStmt->inner->value = currentToken();
+		errorCode = WHILE_MISSING_LEFT_PAREN;
+		return whileStmt;
+	}
+
+	consume(); // (
+
+	whileStmt->condition = expression(expressions);
+
+	if (!matchType(RIGHT_PAREN)) {
+		whileStmt->type = INVALID_STMT;
+		whileStmt->inner->type = INVALID_EXPR;
+		whileStmt->inner->value = currentToken();
+		errorCode = CONDITION_MISSING_RIGHT_PAREN;
+		return whileStmt;
+	}
+
+	consume(); // )
+
+	whileStmt->body = statement(statements, expressions);
+
+	return whileStmt;
+}
+
+// Implemented by 'desugaring' it into two blocks with a while
+// @todo: Because we desugar the for into blocks and a while the debug/error display will be fuck, find a way to fix it
+Stmt				*forStatement(Array *statements, Array *expressions) {
+	Stmt			*outerStmt = (Stmt *)getNext(statements);
+
+	outerStmt->stmtStart = currentToken();
+
+	consume(); // for
+
+	if (!matchType(LEFT_PAREN)) {
+		outerStmt->type = INVALID_STMT;
+		outerStmt->inner->type = INVALID_EXPR;
+		outerStmt->inner->value = currentToken();
+		errorCode = FOR_MISSING_LEFT_PAREN;
+		return outerStmt;
+	}
+
+	consume(); // (
+
+	outerStmt->statements.start = NULL;
+	outerStmt->statements.length = 0;
+	outerStmt->statements.dataSize = sizeof(Stmt *);
+
+	// ----- Initializer -----
+	Stmt			*initializerStmt = NULL;
+
+	if (matchType(VAR)) {
+		initializerStmt = declarationStatement(statements, expressions);
+	} else if (!matchType(SEMICOLON)) {
+		initializerStmt = expressionStatement(statements, expressions);
+	}
+
+	if (!matchType(SEMICOLON)) {
+		outerStmt->type = INVALID_STMT;
+		outerStmt->inner->type = INVALID_EXPR;
+		outerStmt->inner->value = currentToken();
+		pushError(state, FOR_MISSING_SEMICOLON_AFTER_INITIALIZER, outerStmt);
+	} else {
+		consume(); // ;
+	}
+
+
+	// ----- Condition -----
+	Expr			*condition = NULL;
+
+	if (!matchType(SEMICOLON)) {
+		condition = expression(expressions);
+	} else {
+		// @bug: condition should be a LITERAL with a Token TRUE, but we dont want to alloc a new token so we will just
+		// simulate it in the interpreter, it may cause may cause issue
+	}
+
+	if (!matchType(SEMICOLON)) {
+		outerStmt->type = INVALID_STMT;
+		outerStmt->inner->type = INVALID_EXPR;
+		outerStmt->inner->value = currentToken();
+		pushError(state, FOR_MISSING_SEMICOLON_AFTER_CONDITION, outerStmt);
+	} else {
+		consume(); // ;
+	}
+
+
+	// ----- Iterator -----
+	Expr			*iterator = NULL;
+
+	if (!matchType(RIGHT_PAREN)) {
+		iterator = expression(expressions);
+	}
+
+	if (!matchType(RIGHT_PAREN)) {
+		outerStmt->type = INVALID_STMT;
+		outerStmt->inner->type = INVALID_EXPR;
+		outerStmt->inner->value = currentToken();
+		errorCode = FOR_MISSING_RIGHT_PAREN;
+		return outerStmt;
+	}
+
+	consume(); // )
+
+	// ----- Actual Statement -----
+	// @todo @bug: roll back the array on error or we fuck shit up !
+
+	// @note @improvement: We don't need an outer block if we don't have an initializer we could use it as
+	// our inner block and save one block statement of space and execution but it would mean handling that
+	// this function to return multiple statement
+
+	Stmt			*whileStmt = initializerStmt != NULL ? (Stmt *)getNext(statements) : outerStmt;
+
+	whileStmt->type = WHILE_STMT;
+	whileStmt->condition = condition;
+
+	 // If there is an initializer we wrap the whole thing in a block
+	if (initializerStmt != NULL) {
+		outerStmt->type = BLOCK_STMT;
+
+		outerStmt->statements.start = (byte *)initializerStmt;
+		outerStmt->statements.length = 2; // initializer + while
+	}
+
+	if (iterator != NULL) { // We wrap the body in a block
+		whileStmt->body = (Stmt *)getNext(statements);
+
+		whileStmt->body->type = BLOCK_STMT;
+		whileStmt->body->statements.start = (byte *)statement(statements, expressions);
+
+		Stmt		*iteratorStatement = (Stmt *)getNext(statements);
+
+		iteratorStatement->type = STMT;
+		iteratorStatement->inner = iterator;
+
+		whileStmt->body->statements.length = 2; // body + iterator
+	} else {
+		whileStmt->body = statement(statements, expressions);
+	}
+
+	return outerStmt;
+}
+
 Stmt				*statement(Array *statements, Array *expressions) {
 	Stmt			*stmt;
 
@@ -290,7 +523,16 @@ Stmt				*statement(Array *statements, Array *expressions) {
 			stmt = printStatement(statements, expressions);
 			break;
 		case LEFT_BRACE:
-			stmt = block(statements, expressions);
+			stmt = blockStatement(statements, expressions);
+			break;
+		case IF:
+			stmt = ifStatement(statements, expressions);
+			break;
+		case WHILE:
+			stmt = whileStatement(statements, expressions);
+			break;
+		case FOR:
+			stmt = forStatement(statements, expressions);
 			break;
 		default:
 			stmt = expressionStatement(statements, expressions);
@@ -335,7 +577,7 @@ Stmt				*declaration(Array *statements, Array *expressions) {
 		stmt = statement(statements, expressions);
 	}
 
-	if (stmt->type == INVALID_STMT/* || (stmt->inner->type == INVALID_EXPR) @todo @bug: figure out if this matters since it fucks with the blocks statements*/) {
+	if (stmt->type == INVALID_STMT || (stmt->inner && stmt->inner->type == INVALID_EXPR)) {
 		if (stmt->type == INVALID_STMT) {
 			pushError(state, errorCode, stmt);
 		} else {
@@ -350,7 +592,11 @@ Stmt				*declaration(Array *statements, Array *expressions) {
 		// Synchronize
 		synchronize();
 	} else {
-		if (stmt->type == BLOCK) {
+		if ( // Skip ';' check
+			stmt->type == BLOCK_STMT
+			|| stmt->type == IF_STMT
+			|| stmt->type == WHILE_STMT
+		) {
 			return stmt;
 		}
 
@@ -358,7 +604,7 @@ Stmt				*declaration(Array *statements, Array *expressions) {
 			stmt->type = INVALID_STMT;
 			pushError(state, UNTERMINATED_STATEMENT, stmt);
 		} else {
-			consume();
+			consume(); // ;
 		}
 	}
 
@@ -391,9 +637,9 @@ uint32			DEBUG_printStatements(char *source, Array *statements, uint32 length, i
 		printf("%*s", nesting * 8, "");
 		printf("----- Statement %ld -----\n", statement - (Stmt *)statements->data);
 
-		if (statement->type == BLOCK) {
+		if (statement->type == BLOCK_STMT) {
 			printf("%*s", nesting * 8, "");
-			printf("%d | ", statement->blockStart->line);
+			printf("%d | ", statement->stmtStart->line);
 		} else {
 			switch (statement->inner->type) {
 				case BINARY:
@@ -418,8 +664,8 @@ uint32			DEBUG_printStatements(char *source, Array *statements, uint32 length, i
 
 		Token		*token;
 
-		if (statement->type == BLOCK) {
-			token = statement->blockStart;
+		if (statement->type == BLOCK_STMT) {
+			token = statement->stmtStart;
 		} else {
 			switch (statement->inner->type) {
 				case BINARY:
@@ -447,9 +693,9 @@ uint32			DEBUG_printStatements(char *source, Array *statements, uint32 length, i
 		uint32		length = token->offset - startOfLine;
 
 		while (
-				source[startOfLine + length] != '\0'
-				&& source[startOfLine + length] != '\n'
-				) {
+			source[startOfLine + length] != '\0'
+			&& source[startOfLine + length] != '\n'
+		) {
 			length++;
 		}
 
@@ -467,15 +713,15 @@ uint32			DEBUG_printStatements(char *source, Array *statements, uint32 length, i
 		printf("}\n\n");
 		*/
 
-		if (statement->type == BLOCK) {
+		if (statement->type == BLOCK_STMT) {
 			printf("\033[%dm", 32 + nesting + 1);
 
 			printf("%*s", (nesting + 1) * 8, "");
 			printf("----- Block Statements (%d): -----\n", statement->statements.length);
 
-			DEBUG_printStatements(source, (Array *)&statement->statements.start, statement->statements.length + 1, nesting + 1);
+			DEBUG_printStatements(source, (Array *)&statement->statements.start, statement->statements.length, nesting + 1);
 
-			statement += statement->statements.length + 1;
+			statement += statement->statements.length;
 
 			if (nesting) {
 				printf("\033[%dm", 32 + nesting);

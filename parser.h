@@ -17,22 +17,23 @@ enum 				ExprType {
 	UNARY,
 	VARIABLE,
 	ASSIGNMENT,
-
-	BLOCK_EXPR // Fake expression to handle block @todo: Figure this out
+	LOGIC_OR,
+	LOGIC_AND
 };
 
+// @todo: figure out which property is used by what (like Stmt)
 struct				Expr {
 	ExprType		type;
 
 	union {
-		Expr		*left;
-		Expr		*inner;
+		Expr		*left; // LOGIC_OR, LOGIC_AND
+		Expr		*inner; // GROUPING
 	};
 
-	Expr			*right;
+	Expr			*right; // LOGIC_OR, LOGIC_AND
 
 	union {
-		Token		*op;
+		Token		*op; // LOGIC_OR, LOGIC_AND
 		Token		*value;
 		Token		*identifier;
 	};
@@ -44,22 +45,32 @@ enum 				StmtType {
 	STMT,
 	PRINT_STMT,
 	DECL_STMT,
-	BLOCK
+	BLOCK_STMT,
+	IF_STMT,
+	WHILE_STMT
 };
 
+// @todo: figure out which property is used by what
 struct				Stmt {
 	StmtType		type;
 
 	union {
-		Expr		*inner;
-		Expr		*initializer;
+		Expr		*inner; // STMT, GROUP_STMT
+		Expr		*initializer; // DECL_STMT
+		Expr		*condition; // IF_STMT, WHILE_STMT
 	};
 
-	SubArray		statements;
+	SubArray		statements; // BLOCK_STMT
+
+	union {
+		Stmt		*thenBranch; // IF_STMT
+		Stmt		*body; // WHILE_STMT
+	};
+	Stmt			*elseBranch; // IF_STMT
 
 	union {
 		Token		*identifier;
-		Token		*blockStart;
+		Token		*stmtStart; // BLOCK_STMT, IF_STMT, WHILE_STMT
 	};
 };
 
@@ -75,6 +86,10 @@ inline char			*exprTypeToString(int32 type) {
 			return "LITERAL";
 		case UNARY:
 			return "UNARY";
+		case LOGIC_OR:
+			return "LOGIC_OR";
+		case LOGIC_AND:
+			return "LOGIC_AND";
 		default:
 			return "UNKNOWN";
 	}
@@ -90,8 +105,12 @@ inline char			*stmtTypeToString(int32 type) {
 			return "PRINT_STMT";
 		case DECL_STMT:
 			return "DECL_STMT";
-		case BLOCK:
-			return "BLOCK";
+		case BLOCK_STMT:
+			return "BLOCK_STMT";
+		case IF_STMT:
+			return "IF_STMT";
+		case WHILE_STMT:
+			return "WHILE_STMT";
 		default:
 			return "UNKNOWN";
 	}
