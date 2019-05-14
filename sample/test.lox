@@ -8,6 +8,13 @@ while (i < 10) {
     i = i + 1;
 }
 
+for (var j = 20; j < 30; j = j + 1) {
+    print j;
+}
+
+// @todo: bug with ;
+//for (var j = 20; j < 30; j = j + 1) print j;
+
 // @todo: bug on loop, seems scope related
 //var a = 0;
 //var b = 1;

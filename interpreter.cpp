@@ -11,10 +11,6 @@
 
 GLOBAL State	*state;
 
-INTERNAL Map	*currentEnvMap(State *state) {
-	return state->currentEnv->env;
-}
-
 INTERNAL void	reportError3(int32 line, char *message) {
 	printf("\033[31m"); // red
 	printf("[line: %d]: Error: %s", line, message);
@@ -156,8 +152,8 @@ LoxValue		evalBinary(Expr *expr) {
 				break;
 			}
 
-			result.type = LOX_NUMBER;
-			result.number = left.number > right.number;
+			result.type = LOX_BOOLEAN;
+			result.boolean = left.number > right.number;
 			break;
 		case GREATER_EQUAL:
 			if (left.type != LOX_NUMBER || right.type != LOX_NUMBER) {
@@ -167,8 +163,8 @@ LoxValue		evalBinary(Expr *expr) {
 				break;
 			}
 
-			result.type = LOX_NUMBER;
-			result.number = left.number >= right.number;
+			result.type = LOX_BOOLEAN;
+			result.boolean = left.number >= right.number;
 			break;
 		case LESS:
 			if (left.type != LOX_NUMBER || right.type != LOX_NUMBER) {
@@ -178,8 +174,8 @@ LoxValue		evalBinary(Expr *expr) {
 				break;
 			}
 
-			result.type = LOX_NUMBER;
-			result.number = left.number < right.number;
+			result.type = LOX_BOOLEAN;
+			result.boolean = left.number < right.number;
 			break;
 		case LESS_EQUAL:
 			if (left.type != LOX_NUMBER || right.type != LOX_NUMBER) {
@@ -189,8 +185,8 @@ LoxValue		evalBinary(Expr *expr) {
 				break;
 			}
 
-			result.type = LOX_NUMBER;
-			result.number = left.number <= right.number;
+			result.type = LOX_BOOLEAN;
+			result.boolean = left.number <= right.number;
 			break;
 
 
@@ -308,8 +304,8 @@ LoxValue		evalAssignment(Expr *expr) {
 	Env			*env = state->currentEnv;
 
 	while (env != NULL) {
-		if (keyExist(currentEnvMap(state), &expr->identifier->lexeme)) {
-			put(currentEnvMap(state), &expr->identifier->lexeme, (void *)&value);
+		if (keyExist(env->env, &expr->identifier->lexeme)) {
+			put(env->env, &expr->identifier->lexeme, (void *)&value);
 
 			return value;
 		}
@@ -406,7 +402,7 @@ void			execDeclarationStatement(Stmt *statement) {
 		value = evalExpr(statement->initializer);
 	}
 
-	put(currentEnvMap(state), &statement->identifier->lexeme, (void *)&value);
+	put(state->currentEnv->env, &statement->identifier->lexeme, (void *)&value);
 }
 
 void			execBlockStatement(Stmt *statement) {

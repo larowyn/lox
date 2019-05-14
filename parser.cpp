@@ -477,14 +477,10 @@ Stmt				*forStatement(Array *statements, Array *expressions) {
 	consume(); // )
 
 	// ----- Actual Statement -----
-	// @todo @bug: roll back the array on error or we fuck shit up !
-
-	// @note @improvement: We don't need an outer block if we don't have an initializer we could use it as
-	// our inner block and save one block statement of space and execution but it would mean handling that
-	// this function to return multiple statement
-
 	Stmt			*whileStmt = initializerStmt != NULL ? (Stmt *)getNext(statements) : outerStmt;
 
+
+	whileStmt->stmtStart = currentToken(); // @todo: condition token if condition, else find out something
 	whileStmt->type = WHILE_STMT;
 	whileStmt->condition = condition;
 
@@ -501,6 +497,7 @@ Stmt				*forStatement(Array *statements, Array *expressions) {
 
 		whileStmt->body->type = BLOCK_STMT;
 		whileStmt->body->statements.start = (byte *)statement(statements, expressions);
+		whileStmt->body->stmtStart = ((Stmt *)whileStmt->body->statements.start)->stmtStart;
 
 		Stmt		*iteratorStatement = (Stmt *)getNext(statements);
 
@@ -702,7 +699,6 @@ uint32			DEBUG_printStatements(char *source, Array *statements, uint32 length, i
 		printf("%*s", nesting * 8, "");
 		printf("%.*s\n\n", length, &source[startOfLine]);
 
-		/*
 		printf("%*s", nesting * 8, "");
 		printf("{\n");
 
@@ -711,9 +707,23 @@ uint32			DEBUG_printStatements(char *source, Array *statements, uint32 length, i
 
 		printf("%*s", nesting * 8, "");
 		printf("}\n\n");
-		*/
 
-		if (statement->type == BLOCK_STMT) {
+		if (statement->type == WHILE_STMT) {
+			printf("\033[%dm", 32 + nesting + 1);
+
+			printf("%*s", (nesting + 1) * 8, "");
+			printf("----- While Body: -----\n");
+
+			DEBUG_printStatements(source, (Array *)&statement->body, 1, nesting + 1);
+
+			statement++; // skip the body of the loop
+
+			if (nesting) {
+				printf("\033[%dm", 32 + nesting);
+			} else {
+				printf("\033[0m"); // reset
+			}
+		} else if (statement->type == BLOCK_STMT) {
 			printf("\033[%dm", 32 + nesting + 1);
 
 			printf("%*s", (nesting + 1) * 8, "");
